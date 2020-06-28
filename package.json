@@ -1,0 +1,61 @@
+{
+  "name": "@composita/lexer",
+  "version": "0.1.0-dev.0",
+  "description": "Composita language system.",
+  "main": "dist/cjs/lexer.js",
+  "module": "dist/esm/lexer.js",
+  "types": "dist/types/lexer.d.ts",
+  "type": "module",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "ts:cjs": "tsc -p ts/cjs.tsconfig.json",
+    "ts:esm": "tsc -p ts/esm.tsconfig.json",
+    "ts:typedefs": "tsc -p ts/types.tsconfig.json",
+    "ts:all": "yarn ts:cjs && yarn ts:esm && yarn ts:typedefs",
+    "build": "yarn clean && yarn ts:all",
+    "clean": "rimraf dist",
+    "cleantest": "rimraf 'test/**/*.js' 'test/**/*.map' 'test/**/*.d.ts' 'src/**/*.js' 'src/**/*.map' 'src/**/*.d.ts'",
+    "lint": "eslint 'src/**/*.ts' 'test/**/*.ts'",
+    "prepublishOnly": "yarn test && yarn build",
+    "postpublish": "yarn clean",
+    "test": "tape -r ts-node/register 'test/**/*.ts' && yarn lint"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Composita/lexer.git"
+  },
+  "keywords": [
+    "composita",
+    "lexer"
+  ],
+  "author": {
+    "name": "Hansruedi Patzen",
+    "email": "hp@revy.ch",
+    "url": "https://www.revy.ch"
+  },
+  "license": "0BSD",
+  "bugs": {
+    "url": "https://github.com/Composita/lexer/issues"
+  },
+  "homepage": "https://www.composita.dev/",
+  "devDependencies": {
+    "@types/node": "^14.0.14",
+    "@types/tape": "^4.13.0",
+    "@typescript-eslint/eslint-plugin": "^3.4.0",
+    "@typescript-eslint/parser": "^3.4.0",
+    "eslint": "^7.3.1",
+    "eslint-config-prettier": "^6.11.0",
+    "eslint-plugin-prettier": "^3.1.4",
+    "prettier": "^2.0.5",
+    "rimraf": "^3.0.2",
+    "tape": "^5.0.1",
+    "ts-node": "^8.10.2",
+    "typescript": "^3.9.5"
+  },
+  "dependencies": {
+    "vscode-languageserver-types": "^3.15.1"
+  }
+}
