@@ -1,0 +1,27 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"label": "yarn: build",
+			"dependsOn": [ "yarn: test" ],
+			"command": "yarn",
+			"args": [
+				"build"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		},
+		{
+			"type": "shell",
+			"label": "yarn: test",
+			"command": "yarn",
+			"args": [
+				"test"
+			],
+			"group": "test"
+		}
+	]
+}
