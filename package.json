@@ -1,6 +1,6 @@
 {
   "name": "@composita/runtime",
-  "version": "0.1.0-dev.1",
+  "version": "0.1.0-dev.2",
   "description": "Composita language runtime.",
   "main": "dist/cjs/runtime.js",
   "module": "dist/esm/runtime.js",
@@ -42,15 +42,15 @@
   },
   "homepage": "https://www.composita.dev/",
   "devDependencies": {
-    "@composita/ast": "^0.1.0-dev.5",
-    "@composita/checker": "^0.1.0-dev.1",
-    "@composita/diagnosis": "^0.1.0-dev.3",
-    "@composita/generator": "^0.1.0-dev.0",
-    "@composita/lexer": "^0.1.0-dev.1",
-    "@composita/parser": "^0.1.0-dev.0",
-    "@composita/source-location": "^0.1.0-dev.4",
-    "@composita/symbols": "^0.1.0-dev.1",
-    "@composita/tokens": "^0.1.0-dev.2",
+    "@composita/ast": "^0.1.0-dev.7",
+    "@composita/checker": "^0.1.0-dev.3",
+    "@composita/diagnosis": "^0.1.0-dev.4",
+    "@composita/generator": "^0.1.0-dev.3",
+    "@composita/lexer": "^0.1.0-dev.2",
+    "@composita/parser": "^0.1.0-dev.2",
+    "@composita/source-location": "^0.1.0-dev.5",
+    "@composita/symbols": "^0.1.0-dev.3",
+    "@composita/tokens": "^0.1.0-dev.3",
     "@types/node": "^14.0.14",
     "@types/tape": "^4.13.0",
     "@typescript-eslint/eslint-plugin": "^3.4.0",
@@ -66,14 +66,14 @@
     "vscode-languageserver-types": "^3.15.1"
   },
   "dependencies": {
-    "@composita/il": "^0.1.0-dev.0",
-    "@composita/interpreter": "^0.1.0-dev.1",
-    "@composita/scheduler": "^0.1.0-dev.2",
-    "@composita/tasks": "^0.1.0-dev.1",
+    "@composita/il": "^0.1.0-dev.1",
+    "@composita/interpreter": "^0.1.0-dev.2",
+    "@composita/scheduler": "^0.1.0-dev.3",
+    "@composita/tasks": "^0.1.0-dev.2",
     "@composita/ts-utility-types": "^0.1.0-dev.5"
   },
   "peerDependencies": {
-    "@composita/il": "^0.1.0-dev.0",
+    "@composita/il": "^0.1.0-dev.1",
     "@composita/ts-utility-types": "^0.1.0-dev.5"
   }
 }
