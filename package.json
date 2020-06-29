@@ -1,11 +1,11 @@
 {
-  "name": "@composita/lexer",
+  "name": "@composita/runtime",
   "version": "0.1.0-dev.0",
-  "description": "Composita language system.",
-  "main": "dist/cjs/lexer.js",
-  "module": "dist/esm/lexer.js",
-  "types": "dist/types/lexer.d.ts",
-  "type": "module",
+  "description": "Composita language runtime.",
+  "main": "dist/cjs/runtime.js",
+  "module": "dist/esm/runtime.js",
+  "types": "dist/types/runtime.d.ts",
+  "type": "commonjs",
   "files": [
     "dist",
     "src"
@@ -25,11 +25,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Composita/lexer.git"
+    "url": "git+https://github.com/Composita/runtime.git"
   },
   "keywords": [
     "composita",
-    "lexer"
+    "runtime"
   ],
   "author": {
     "name": "Hansruedi Patzen",
@@ -38,10 +38,19 @@
   },
   "license": "0BSD",
   "bugs": {
-    "url": "https://github.com/Composita/lexer/issues"
+    "url": "https://github.com/Composita/runtime/issues"
   },
   "homepage": "https://www.composita.dev/",
   "devDependencies": {
+    "@composita/ast": "^0.1.0-dev.5",
+    "@composita/checker": "^0.1.0-dev.1",
+    "@composita/diagnosis": "^0.1.0-dev.3",
+    "@composita/generator": "^0.1.0-dev.0",
+    "@composita/lexer": "^0.1.0-dev.1",
+    "@composita/parser": "^0.1.0-dev.0",
+    "@composita/source-location": "^0.1.0-dev.4",
+    "@composita/symbols": "^0.1.0-dev.1",
+    "@composita/tokens": "^0.1.0-dev.2",
     "@types/node": "^14.0.14",
     "@types/tape": "^4.13.0",
     "@typescript-eslint/eslint-plugin": "^3.4.0",
@@ -53,9 +62,18 @@
     "rimraf": "^3.0.2",
     "tape": "^5.0.1",
     "ts-node": "^8.10.2",
-    "typescript": "^3.9.5"
+    "typescript": "^3.9.5",
+    "vscode-languageserver-types": "^3.15.1"
   },
   "dependencies": {
-    "vscode-languageserver-types": "^3.15.1"
+    "@composita/il": "^0.1.0-dev.0",
+    "@composita/interpreter": "^0.1.0-dev.1",
+    "@composita/scheduler": "^0.1.0-dev.2",
+    "@composita/tasks": "^0.1.0-dev.1",
+    "@composita/ts-utility-types": "^0.1.0-dev.5"
+  },
+  "peerDependencies": {
+    "@composita/il": "^0.1.0-dev.0",
+    "@composita/ts-utility-types": "^0.1.0-dev.5"
   }
 }
