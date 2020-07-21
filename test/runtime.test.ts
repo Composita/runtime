@@ -24,15 +24,17 @@ export class OutputCapture {
 tape('Runtime.getInstance() Hello World', async (test) => {
     const code = `COMPONENT HelloWorld;
   BEGIN
-    WRITE("Hello World"); WRITELINE;
+    WRITE("Hello World"); WRITELINE
 END HelloWorld;`;
     const outputCapture = new OutputCapture();
-    const lexer = new Lexer(new CompilerDiagnosis(), '', code);
-    const parser = new Parser(lexer);
+    const uri = '';
+    const diagnosis = new CompilerDiagnosis();
+    const lexer = new Lexer(diagnosis, uri, code);
+    const parser = new Parser(diagnosis, lexer);
     const checker = new Checker();
-    const symbols = await checker.check(await parser.parse());
+    const symbols = checker.check(uri, parser.parse());
     const generator = new Generator();
-    const il = await generator.generate(symbols);
+    const il = generator.generate(symbols);
     Runtime.getInstance().reset();
     Runtime.getInstance().changeOutput(outputCapture.capture.bind(outputCapture));
     await Runtime.getInstance().execute(il);
@@ -41,24 +43,26 @@ END HelloWorld;`;
 });
 
 tape('Runtime.getInstance() Double Hello World', async (test) => {
-    const outputCapture = new OutputCapture();
-    Runtime.getInstance().reset();
-    Runtime.getInstance().changeOutput(outputCapture.capture.bind(outputCapture));
     const code = `COMPONENT HelloWorld;
   BEGIN
-    WRITE("Hello World"); WRITELINE;
+    WRITE("Hello World"); WRITELINE
 END HelloWorld;
 
 COMPONENT HelloWorld2;
   BEGIN
-    WRITE("Hello World\n");
+    WRITE("Hello World\n")
 END HelloWorld2;`;
-    const lexer = new Lexer(new CompilerDiagnosis(), '', code);
-    const parser = new Parser(lexer);
+    const outputCapture = new OutputCapture();
+    Runtime.getInstance().reset();
+    Runtime.getInstance().changeOutput(outputCapture.capture.bind(outputCapture));
+    const uri = '';
+    const diagnosis = new CompilerDiagnosis();
+    const lexer = new Lexer(diagnosis, uri, code);
+    const parser = new Parser(diagnosis, lexer);
     const checker = new Checker();
-    const symbols = await checker.check(await parser.parse());
+    const symbols = checker.check(uri, parser.parse());
     const generator = new Generator();
-    const il = await generator.generate(symbols);
+    const il = generator.generate(symbols);
     await Runtime.getInstance().execute(il);
     test.equal(outputCapture.getOutput(), 'Hello WorldHello World\n\n', 'Hello World Complete.');
     test.end();

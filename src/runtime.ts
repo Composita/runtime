@@ -1,9 +1,8 @@
 import { Scheduler } from '@composita/scheduler';
-import { IL, ComponentDescriptor, Message } from '@composita/il';
+import { IL, ComponentDescriptor } from '@composita/il';
 import { Optional } from '@composita/ts-utility-types';
 import { Task, ComponentTask } from '@composita/tasks';
 import { SystemCallHandler, Interpreter } from '@composita/interpreter';
-import { Mailbox } from './mailbox';
 
 export class Runtime implements SystemCallHandler {
     private constructor() {
@@ -19,7 +18,7 @@ export class Runtime implements SystemCallHandler {
 
     private static instance: Optional<Runtime> = undefined;
 
-    private mailboxes: Array<Mailbox> = new Array<Mailbox>();
+    //private mailboxes: Array<Mailbox> = new Array<Mailbox>();
     private scheduler: Scheduler = new Scheduler();
     private nextTaskId = 0;
     private tasks: Array<Task> = new Array<Task>();
@@ -35,20 +34,20 @@ export class Runtime implements SystemCallHandler {
         this.out = out;
     }
 
-    trySend(record: Message, to: number): boolean {
-        if (this.mailboxes.length <= to || !this.mailboxes[to].empty()) {
-            return false;
-        }
-        this.mailboxes[to].put(record);
-        return true;
-    }
+    //trySend(record: Message, to: number): boolean {
+    //    if (this.mailboxes.length <= to || !this.mailboxes[to].empty()) {
+    //        return false;
+    //    }
+    //    this.mailboxes[to].put(record);
+    //    return true;
+    //}
 
     async time(): Promise<number> {
         return new Date().getMilliseconds();
     }
 
     async execute(il: IL): Promise<void> {
-        il.entryPoints.forEach(async (descriptor) => {
+        il.getEntryPoints().forEach(async (descriptor) => {
             await this.createTask(descriptor);
         });
         let task = this.scheduler.getActiveTask();
@@ -68,5 +67,3 @@ export class Runtime implements SystemCallHandler {
         this.scheduler.enqueue(task);
     }
 }
-
-export { Mailbox } from './mailbox';

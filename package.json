@@ -1,6 +1,6 @@
 {
   "name": "@composita/runtime",
-  "version": "0.1.0-dev.2",
+  "version": "0.1.0-dev.3",
   "description": "Composita language runtime.",
   "main": "dist/cjs/runtime.js",
   "module": "dist/esm/runtime.js",
@@ -42,38 +42,38 @@
   },
   "homepage": "https://www.composita.dev/",
   "devDependencies": {
-    "@composita/ast": "^0.1.0-dev.7",
-    "@composita/checker": "^0.1.0-dev.3",
-    "@composita/diagnosis": "^0.1.0-dev.4",
-    "@composita/generator": "^0.1.0-dev.3",
-    "@composita/lexer": "^0.1.0-dev.2",
-    "@composita/parser": "^0.1.0-dev.2",
+    "@composita/ast": "^0.1.0-dev.31",
+    "@composita/checker": "^0.1.0-dev.9",
+    "@composita/diagnosis": "^0.1.0-dev.8",
+    "@composita/generator": "^0.1.0-dev.8",
+    "@composita/lexer": "^0.1.0-dev.14",
+    "@composita/parser": "^0.1.0-dev.20",
     "@composita/source-location": "^0.1.0-dev.5",
-    "@composita/symbols": "^0.1.0-dev.3",
-    "@composita/tokens": "^0.1.0-dev.3",
-    "@types/node": "^14.0.14",
+    "@composita/symbols": "^0.1.0-dev.40",
+    "@composita/tokens": "^0.1.0-dev.7",
+    "@types/node": "^14.0.24",
     "@types/tape": "^4.13.0",
-    "@typescript-eslint/eslint-plugin": "^3.4.0",
-    "@typescript-eslint/parser": "^3.4.0",
-    "eslint": "^7.3.1",
+    "@typescript-eslint/eslint-plugin": "^3.7.0",
+    "@typescript-eslint/parser": "^3.7.0",
+    "eslint": "^7.5.0",
     "eslint-config-prettier": "^6.11.0",
     "eslint-plugin-prettier": "^3.1.4",
     "prettier": "^2.0.5",
     "rimraf": "^3.0.2",
     "tape": "^5.0.1",
     "ts-node": "^8.10.2",
-    "typescript": "^3.9.5",
+    "typescript": "^3.9.7",
     "vscode-languageserver-types": "^3.15.1"
   },
   "dependencies": {
-    "@composita/il": "^0.1.0-dev.1",
-    "@composita/interpreter": "^0.1.0-dev.2",
+    "@composita/il": "^0.1.0-dev.7",
+    "@composita/interpreter": "^0.1.0-dev.7",
     "@composita/scheduler": "^0.1.0-dev.3",
-    "@composita/tasks": "^0.1.0-dev.2",
-    "@composita/ts-utility-types": "^0.1.0-dev.5"
+    "@composita/tasks": "^0.1.0-dev.4",
+    "@composita/ts-utility-types": "^0.1.0-dev.7"
   },
   "peerDependencies": {
-    "@composita/il": "^0.1.0-dev.1",
-    "@composita/ts-utility-types": "^0.1.0-dev.5"
+    "@composita/il": "^0.1.0-dev.7",
+    "@composita/ts-utility-types": "^0.1.0-dev.7"
   }
 }
