@@ -33,6 +33,14 @@ export class Runtime implements SystemCallHandler {
         this.out = out;
     }
 
+    private isRunning: (running: boolean) => void = () => {
+        /* */
+    };
+
+    isRunningUpdate(fn: () => boolean): void {
+        this.isRunning = fn;
+    }
+
     async haltProcess(processId: number): Promise<void> {
         this.scheduler.killTask(processId);
     }
@@ -55,6 +63,7 @@ export class Runtime implements SystemCallHandler {
     }
 
     async run(): Promise<void> {
+        this.isRunning(true);
         this.currentIl?.getEntryPoints().forEach(async (descriptor) => {
             await this.createTask(descriptor);
         });
@@ -63,6 +72,7 @@ export class Runtime implements SystemCallHandler {
             await task.execute();
             task = this.scheduler.getActiveTask();
         }
+        this.isRunning(false);
     }
 
     async print(...msgs: Array<string>): Promise<void> {
