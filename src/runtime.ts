@@ -3,6 +3,7 @@ import { IL, ComponentDescriptor } from '@composita/il';
 import { Optional } from '@composita/ts-utility-types';
 import { ComponentTask } from '@composita/tasks';
 import { SystemCallHandler, Interpreter } from '@composita/interpreter';
+import { Worker } from 'worker_threads';
 
 export class Runtime implements SystemCallHandler {
     private constructor() {
@@ -16,16 +17,22 @@ export class Runtime implements SystemCallHandler {
         return this.instance;
     }
 
+    private worker: Optional<Worker> = undefined;
+
     private static instance: Optional<Runtime> = undefined;
 
     private scheduler: Scheduler = new Scheduler();
     private nextTaskId = 0;
+    private stop = false;
 
     private out: (...msgs: Array<string>) => void = (...msgs: Array<string>) =>
         msgs.forEach((msg) => process.stdout.write(msg));
 
     reset(): void {
-        Runtime.instance = new Runtime();
+        this.worker?.terminate();
+        this.worker = undefined;
+        this.stop = true;
+        //Runtime.instance = new Runtime();
     }
 
     changeOutput(out: (...msg: Array<string>) => void): void {
@@ -45,12 +52,27 @@ export class Runtime implements SystemCallHandler {
         return new Date().getMilliseconds();
     }
 
+    private currentIl: Optional<IL> = undefined;
+
     async execute(il: IL): Promise<void> {
-        il.getEntryPoints().forEach(async (descriptor) => {
+        this.stop = false;
+        this.currentIl = il;
+        await this.run();
+    }
+
+    executeWorker(il: IL): void {
+        this.reset();
+        this.stop = false;
+        this.currentIl = il;
+        this.worker = new Worker('./src/worker.js', { workerData: { path: './worker.ts' } });
+    }
+
+    async run(): Promise<void> {
+        this.currentIl?.getEntryPoints().forEach(async (descriptor) => {
             await this.createTask(descriptor);
         });
         let task = this.scheduler.getActiveTask();
-        while (task !== undefined) {
+        while (task !== undefined && !this.stop) {
             await task.execute();
             task = this.scheduler.getActiveTask();
         }
