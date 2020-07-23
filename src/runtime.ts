@@ -3,7 +3,6 @@ import { IL, ComponentDescriptor } from '@composita/il';
 import { Optional } from '@composita/ts-utility-types';
 import { ComponentTask } from '@composita/tasks';
 import { SystemCallHandler, Interpreter } from '@composita/interpreter';
-import { Worker } from 'worker_threads';
 
 export class Runtime implements SystemCallHandler {
     private constructor() {
@@ -17,8 +16,6 @@ export class Runtime implements SystemCallHandler {
         return this.instance;
     }
 
-    private worker: Optional<Worker> = undefined;
-
     private static instance: Optional<Runtime> = undefined;
 
     private scheduler: Scheduler = new Scheduler();
@@ -29,10 +26,7 @@ export class Runtime implements SystemCallHandler {
         msgs.forEach((msg) => process.stdout.write(msg));
 
     reset(): void {
-        this.worker?.terminate();
-        this.worker = undefined;
         this.stop = true;
-        //Runtime.instance = new Runtime();
     }
 
     changeOutput(out: (...msg: Array<string>) => void): void {
@@ -58,13 +52,6 @@ export class Runtime implements SystemCallHandler {
         this.stop = false;
         this.currentIl = il;
         await this.run();
-    }
-
-    executeWorker(il: IL): void {
-        this.reset();
-        this.stop = false;
-        this.currentIl = il;
-        this.worker = new Worker('./src/worker.js', { workerData: { path: './worker.ts' } });
     }
 
     async run(): Promise<void> {
