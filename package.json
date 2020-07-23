@@ -1,6 +1,6 @@
 {
   "name": "@composita/runtime",
-  "version": "0.1.0-dev.5",
+  "version": "0.1.0-dev.6",
   "description": "Composita language runtime.",
   "main": "dist/cjs/runtime.js",
   "module": "dist/esm/runtime.js",
@@ -42,15 +42,7 @@
   },
   "homepage": "https://www.composita.dev/",
   "devDependencies": {
-    "@composita/ast": "^0.1.0-dev.31",
-    "@composita/checker": "^0.1.0-dev.11",
-    "@composita/diagnosis": "^0.1.0-dev.8",
-    "@composita/generator": "^0.1.0-dev.10",
-    "@composita/lexer": "^0.1.0-dev.14",
-    "@composita/parser": "^0.1.0-dev.20",
-    "@composita/source-location": "^0.1.0-dev.5",
-    "@composita/symbols": "^0.1.0-dev.44",
-    "@composita/tokens": "^0.1.0-dev.7",
+    "@composita/compiler": "^0.1.0-dev.14",
     "@types/node": "^14.0.24",
     "@types/tape": "^4.13.0",
     "@typescript-eslint/eslint-plugin": "^3.7.0",
@@ -67,7 +59,7 @@
   },
   "dependencies": {
     "@composita/il": "^0.1.0-dev.15",
-    "@composita/interpreter": "^0.1.0-dev.14",
+    "@composita/interpreter": "^0.1.0-dev.18",
     "@composita/scheduler": "^0.1.0-dev.4",
     "@composita/tasks": "^0.1.0-dev.5",
     "@composita/ts-utility-types": "^0.1.0-dev.7"
