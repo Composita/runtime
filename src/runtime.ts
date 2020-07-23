@@ -37,7 +37,7 @@ export class Runtime implements SystemCallHandler {
         /* */
     };
 
-    isRunningUpdate(fn: () => boolean): void {
+    isRunningUpdate(fn: (running: boolean) => void): void {
         this.isRunning = fn;
     }
 
