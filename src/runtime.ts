@@ -1,7 +1,7 @@
 import { Scheduler } from '@composita/scheduler';
 import { IL, ComponentDescriptor } from '@composita/il';
 import { Optional } from '@composita/ts-utility-types';
-import { Task, ComponentTask } from '@composita/tasks';
+import { ComponentTask } from '@composita/tasks';
 import { SystemCallHandler, Interpreter } from '@composita/interpreter';
 
 export class Runtime implements SystemCallHandler {
@@ -18,10 +18,8 @@ export class Runtime implements SystemCallHandler {
 
     private static instance: Optional<Runtime> = undefined;
 
-    //private mailboxes: Array<Mailbox> = new Array<Mailbox>();
     private scheduler: Scheduler = new Scheduler();
     private nextTaskId = 0;
-    private tasks: Array<Task> = new Array<Task>();
 
     private out: (...msgs: Array<string>) => void = (...msgs: Array<string>) =>
         msgs.forEach((msg) => process.stdout.write(msg));
@@ -34,13 +32,14 @@ export class Runtime implements SystemCallHandler {
         this.out = out;
     }
 
-    //trySend(record: Message, to: number): boolean {
-    //    if (this.mailboxes.length <= to || !this.mailboxes[to].empty()) {
-    //        return false;
-    //    }
-    //    this.mailboxes[to].put(record);
-    //    return true;
-    //}
+    async haltProcess(processId: number): Promise<void> {
+        this.scheduler.killTask(processId);
+    }
+
+    async haltProcessWithCode(processId: number, n: number): Promise<void> {
+        await this.print(`Halting process, code ${n}`);
+        this.scheduler.killTask(processId);
+    }
 
     async time(): Promise<number> {
         return new Date().getMilliseconds();
@@ -62,8 +61,8 @@ export class Runtime implements SystemCallHandler {
     }
 
     async createTask(descriptor: ComponentDescriptor): Promise<void> {
-        const task = new ComponentTask(this.nextTaskId++, new Interpreter(this), descriptor);
-        this.tasks.push(task);
+        const taskId = this.nextTaskId++;
+        const task = new ComponentTask(taskId, new Interpreter(this, taskId), descriptor);
         this.scheduler.enqueue(task);
     }
 }
