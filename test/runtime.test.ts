@@ -54,6 +54,38 @@ END HelloWorld2;`;
     test.end();
 });
 
+tape('Basic arcsin.', async (test) => {
+    const code = `COMPONENT Expr;
+BEGIN
+  WRITE(ARCSIN(0.))
+END Expr;`;
+    const outputCapture = new OutputCapture();
+    Runtime.getInstance().reset();
+    Runtime.getInstance().changeOutput(outputCapture.capture.bind(outputCapture));
+    const uri = '';
+    const compiler = new Compiler();
+    const il = await compiler.compile(uri, code);
+    await Runtime.getInstance().execute(il);
+    test.equal(outputCapture.getOutput(), '0', 'ARCSIN(0).');
+    test.end();
+});
+
+tape('Basic cos.', async (test) => {
+    const code = `COMPONENT Expr;
+BEGIN
+WRITE(COS(PI))
+END Expr;`;
+    const outputCapture = new OutputCapture();
+    Runtime.getInstance().reset();
+    Runtime.getInstance().changeOutput(outputCapture.capture.bind(outputCapture));
+    const uri = '';
+    const compiler = new Compiler();
+    const il = await compiler.compile(uri, code);
+    await Runtime.getInstance().execute(il);
+    test.equal(outputCapture.getOutput(), '-1', 'COS(PI).');
+    test.end();
+});
+
 tape('Basic if false comparison.', async (test) => {
     const code = `COMPONENT Expr;
   BEGIN
