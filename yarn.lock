@@ -88,10 +88,10 @@
   dependencies:
     "@composita/ts-utility-types" "^0.2.0"
 
-"@composita/interpreter@^0.2.3":
-  version "0.2.3"
-  resolved "https://registry.yarnpkg.com/@composita/interpreter/-/interpreter-0.2.3.tgz#3b3ee87ff52f23a17d2203161289bcc2169d259c"
-  integrity sha512-HKEZt6JnvSGmuyDOONFY/HKHdDzkrYMfe1n0q5+7jP7gdVc4XRoJPTSzMALZ/ElwFXUh7pyEKXUOsAX1BBN+oA==
+"@composita/interpreter@^0.2.4":
+  version "0.2.4"
+  resolved "https://registry.yarnpkg.com/@composita/interpreter/-/interpreter-0.2.4.tgz#22599f85e6ced549683e0cf10b9153bf6fd67731"
+  integrity sha512-TtUbSfG6hHsu8t1i77C/OtpRwWhsKlRr7vsdZVp5X5pTJcavfYRo0omp9M6VVObdj2Pt4Tto6dKgHhmFjciKDQ==
   dependencies:
     "@composita/il" "^0.2.3"
     "@composita/tasks" "^0.2.0"

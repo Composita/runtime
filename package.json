@@ -1,6 +1,6 @@
 {
   "name": "@composita/runtime",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Composita language runtime.",
   "main": "dist/cjs/runtime.js",
   "module": "dist/esm/runtime.js",
@@ -59,7 +59,7 @@
   },
   "dependencies": {
     "@composita/il": "^0.2.3",
-    "@composita/interpreter": "^0.2.3",
+    "@composita/interpreter": "^0.2.4",
     "@composita/scheduler": "^0.2.0",
     "@composita/tasks": "^0.2.1",
     "@composita/ts-utility-types": "^0.2.0"
