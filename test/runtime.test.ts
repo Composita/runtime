@@ -223,3 +223,21 @@ END Expr;`;
     test.equal(outputCapture.getOutput(), '1.5', '1 / 2 * 3 = 1.5.');
     test.end();
 });
+
+tape('Basic Math with Variable.', async (test) => {
+    const code = `COMPONENT Expr;
+  VARIABLE v: INTEGER;
+  BEGIN
+    v := 5 - 3 * 7 + 8;
+    WRITE(v)
+END Expr;`;
+    const outputCapture = new OutputCapture();
+    Runtime.getInstance().reset();
+    Runtime.getInstance().changeOutput(outputCapture.capture.bind(outputCapture));
+    const uri = '';
+    const compiler = new Compiler();
+    const il = await compiler.compile(uri, code);
+    await Runtime.getInstance().execute(il);
+    test.equal(outputCapture.getOutput(), '-8', '5 - 3 * 7 + 8 = -8');
+    test.end();
+});
