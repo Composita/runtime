@@ -18,7 +18,7 @@ export class OutputCapture {
 }
 
 tape('Runtime.getInstance() Hello World', async (test) => {
-    const code = `COMPONENT HelloWorld;
+    const code = `COMPONENT { ENTRYPOINT } HelloWorld;
   BEGIN
     WRITE("Hello World"); WRITELINE
 END HelloWorld;`;
@@ -33,15 +33,15 @@ END HelloWorld;`;
     test.end();
 });
 
-tape('Runtime.getInstance() Double Hello World', async (test) => {
-    const code = `COMPONENT HelloWorld;
+tape('Double Hello World', async (test) => {
+    const code = `COMPONENT { ENTRYPOINT } HelloWorld;
   BEGIN
     WRITE("Hello World"); WRITELINE
 END HelloWorld;
 
-COMPONENT HelloWorld2;
+COMPONENT { ENTRYPOINT } HelloWorld2;
   BEGIN
-    WRITE("Hello World\n")
+    WRITE("Hello World2\n")
 END HelloWorld2;`;
     const outputCapture = new OutputCapture();
     Runtime.getInstance().reset();
@@ -50,12 +50,54 @@ END HelloWorld2;`;
     const compiler = new Compiler();
     const il = await compiler.compile(uri, code);
     await Runtime.getInstance().execute(il);
-    test.equal(outputCapture.getOutput(), 'Hello WorldHello World\n\n', 'Hello World Complete.');
+    test.equal(outputCapture.getOutput(), 'Hello WorldHello World2\n\n', 'Hello World Complete.');
+    test.end();
+});
+tape('NEW Hello World', async (test) => {
+    const code = `COMPONENT { ENTRYPOINT } HelloWorld;
+    VARIABLE nh: NewHelloWorld;
+BEGIN
+  NEW(nh);
+  NEW(nh);
+  WRITE("a");
+  WRITE("b");
+  WRITE("c");
+  WRITE("d");
+  WRITE("e");
+  WRITE("f")
+FINALLY
+  WRITE("OHD")
+END HelloWorld;
+
+COMPONENT NewHelloWorld;
+BEGIN
+  WRITE(1);
+  WRITE(2);
+  WRITE(3);
+  WRITE(4);
+  WRITE(5);
+  WRITE(6);
+  WRITE(7);
+  WRITE(8);
+  WRITE(9);
+  WRITE("Hello World");
+  WRITELINE
+FINALLY
+  WRITE("FINALLY")
+END NewHelloWorld;`;
+    const outputCapture = new OutputCapture();
+    Runtime.getInstance().reset();
+    Runtime.getInstance().changeOutput(outputCapture.capture.bind(outputCapture));
+    const uri = '';
+    const compiler = new Compiler();
+    const il = await compiler.compile(uri, code);
+    await Runtime.getInstance().execute(il);
+    test.equal(outputCapture.getOutput(), 'FINALLY1a2b3c4d5e6f7OOHD89HelloWorld\nFINALLY', 'Hello World Complete.');
     test.end();
 });
 
 tape('Basic arcsin.', async (test) => {
-    const code = `COMPONENT Expr;
+    const code = `COMPONENT { ENTRYPOINT } Expr;
 BEGIN
   WRITE(ARCSIN(0.))
 END Expr;`;
@@ -71,7 +113,7 @@ END Expr;`;
 });
 
 tape('Basic cos.', async (test) => {
-    const code = `COMPONENT Expr;
+    const code = `COMPONENT { ENTRYPOINT } Expr;
 BEGIN
 WRITE(COS(PI))
 END Expr;`;
@@ -87,7 +129,7 @@ END Expr;`;
 });
 
 tape('Basic if false comparison.', async (test) => {
-    const code = `COMPONENT Expr;
+    const code = `COMPONENT { ENTRYPOINT } Expr;
   BEGIN
     IF 2 < 1 + 1 THEN
       WRITE("NOT TRUE")
@@ -105,7 +147,7 @@ END Expr;`;
 });
 
 tape('Another basic if false comparison.', async (test) => {
-    const code = `COMPONENT Expr;
+    const code = `COMPONENT { ENTRYPOINT } Expr;
   BEGIN
     IF 1 + 1 < 2 THEN
       WRITE("NOT TRUE")
@@ -123,7 +165,7 @@ END Expr;`;
 });
 
 tape('Basic if true comparison.', async (test) => {
-    const code = `COMPONENT Expr;
+    const code = `COMPONENT { ENTRYPOINT } Expr;
   BEGIN
     IF 2 <= 1 + 1 THEN
       WRITE("TRUE")
@@ -141,7 +183,7 @@ END Expr;`;
 });
 
 tape('Another basic if true comparison.', async (test) => {
-    const code = `COMPONENT Expr;
+    const code = `COMPONENT { ENTRYPOINT } Expr;
   BEGIN
     IF 1 + 1 <= 2 THEN
       WRITE("TRUE")
@@ -159,7 +201,7 @@ END Expr;`;
 });
 
 tape('Basic Math.', async (test) => {
-    const code = `COMPONENT Expr;
+    const code = `COMPONENT { ENTRYPOINT } Expr;
   BEGIN
     WRITE(1 + 10 - 11)
 END Expr;`;
@@ -175,7 +217,7 @@ END Expr;`;
 });
 
 tape('Another basic comparison.', async (test) => {
-    const code = `COMPONENT Expr;
+    const code = `COMPONENT { ENTRYPOINT } Expr;
   BEGIN
     IF 1 + 10 < 1 THEN
       WRITE("FALSE")
@@ -193,7 +235,7 @@ END Expr;`;
 });
 
 tape('Basic Math.', async (test) => {
-    const code = `COMPONENT Expr;
+    const code = `COMPONENT { ENTRYPOINT } Expr;
   BEGIN
     WRITE(-1 + 10 - 11)
 END Expr;`;
@@ -209,7 +251,7 @@ END Expr;`;
 });
 
 tape('Basic Math.', async (test) => {
-    const code = `COMPONENT Expr;
+    const code = `COMPONENT { ENTRYPOINT } Expr;
   BEGIN
     WRITE(1. / 2. * 3.)
 END Expr;`;
@@ -225,7 +267,7 @@ END Expr;`;
 });
 
 tape('Basic Math with Variable.', async (test) => {
-    const code = `COMPONENT Expr;
+    const code = `COMPONENT { ENTRYPOINT } Expr;
   VARIABLE v: INTEGER;
   BEGIN
     v := 5 - 3 * 7 + 8;

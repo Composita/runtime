@@ -1,10 +1,12 @@
-import { Scheduler } from '@composita/scheduler';
-import { IL, ComponentDescriptor } from '@composita/il';
+import { Scheduler } from './scheduler';
+import { ComponentDescriptor, IL } from '@composita/il';
 import { Optional } from '@composita/ts-utility-types';
-import { ComponentTask } from '@composita/tasks';
-import { SystemCallHandler, Interpreter } from '@composita/interpreter';
+import { Task } from './tasks';
+import { Interpreter } from './interpreter';
+import { BidirectionalConnection, SystemHandle } from './syscallhandler';
+import { ActiveValue, ArrayVariableValue, ComponentValue, ProcedureValue, ServiceValue, VariableValue } from './values';
 
-export class Runtime implements SystemCallHandler {
+export class Runtime implements SystemHandle {
     private constructor() {
         /* prevent creating multiple runtimes. */
     }
@@ -64,8 +66,9 @@ export class Runtime implements SystemCallHandler {
 
     async run(): Promise<void> {
         this.isRunning(true);
-        this.currentIl?.getEntryPoints().forEach(async (descriptor) => {
-            await this.createTask(descriptor);
+        this.currentIl?.entryPoints.forEach((descriptor) => {
+            const component = this.createComponent(descriptor, undefined);
+            this.register(component);
         });
         let task = this.scheduler.getActiveTask();
         while (task !== undefined && !this.stop) {
@@ -79,9 +82,36 @@ export class Runtime implements SystemCallHandler {
         this.out(...msgs);
     }
 
-    async createTask(descriptor: ComponentDescriptor): Promise<void> {
-        const taskId = this.nextTaskId++;
-        const task = new ComponentTask(taskId, new Interpreter(this, taskId), descriptor);
+    createComponent(type: ComponentDescriptor, container: Optional<ActiveValue>): ComponentValue {
+        const component = new ComponentValue(type, container);
+        type.declarations.variables.forEach((descriptor) => {
+            if (descriptor.indexTypes.length > 0) {
+                component.variables.push(new ArrayVariableValue(descriptor, new Map()));
+            } else {
+                component.variables.push(new VariableValue(descriptor, undefined, descriptor.mutable));
+            }
+        });
+        type.declarations.procedures.forEach((descriptor) =>
+            component.procedures.push(new ProcedureValue(descriptor, component)),
+        );
+        type.implementations.forEach((descriptor) => component.services.push(new ServiceValue(descriptor, component)));
+        return component;
+    }
+
+    register(active: ActiveValue): void {
+        const interpreter = new Interpreter(this, active);
+        const task = new Task(this.nextTaskId++, interpreter);
         this.scheduler.enqueue(task);
+    }
+
+    connect(client: ServiceValue, server: ServiceValue): BidirectionalConnection {
+        client;
+        server;
+        throw new Error('Method not implemented.');
+    }
+
+    disconnect(client: ServiceValue): void {
+        client;
+        throw new Error('Method not implemented.');
     }
 }
