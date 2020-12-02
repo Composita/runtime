@@ -405,35 +405,35 @@ enum IntegerValueTag {
     Tag,
 }
 export class IntegerValue {
-    constructor(public value: number) {}
+    constructor(public value: number = 0) {}
     protected readonly _integerTag = IntegerValueTag.Tag;
 }
 enum FloatValueTag {
     Tag,
 }
 export class FloatValue {
-    constructor(public value: number) {}
+    constructor(public value: number = 0) {}
     protected readonly _floatTag = FloatValueTag.Tag;
 }
 enum TextValueTag {
     Tag,
 }
 export class TextValue {
-    constructor(public value: string) {}
+    constructor(public value: string = '') {}
     protected readonly _textTag = TextValueTag.Tag;
 }
 enum CharacterValueTag {
     Tag,
 }
 export class CharacterValue {
-    constructor(public value: string) {}
+    constructor(public value: string = '\0') {}
     protected readonly _characterTag = CharacterValueTag.Tag;
 }
 enum BooleanValueTag {
     Tag,
 }
 export class BooleanValue {
-    constructor(public value: boolean) {}
+    constructor(public value: boolean = false) {}
     protected readonly _booleanTag = BooleanValueTag.Tag;
 }
 

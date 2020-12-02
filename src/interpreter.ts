@@ -544,7 +544,8 @@ export class Interpreter {
 
     private branch(operands: Array<InstructionArgument>): void {
         if (operands.length !== 1) {
-            throw new Error(`Branch conditions only have one operand.`);
+            console.log(operands);
+            throw new Error(`Branch conditions must have one operand.`);
         }
         const operand = operands[0];
         if (operand instanceof JumpDescriptor) {
@@ -577,6 +578,7 @@ export class Interpreter {
         if (nextInstruction === undefined) {
             return;
         }
+        console.log(OperatorCode[nextInstruction.code]);
         switch (nextInstruction.code) {
             case OperatorCode.Add:
                 this.add();

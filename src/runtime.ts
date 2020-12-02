@@ -1,25 +1,30 @@
 import { Scheduler } from './scheduler';
-import { ComponentDescriptor, IL } from '@composita/il';
+import {
+    BooleanDescriptor,
+    CharacterDescriptor,
+    ComponentDescriptor,
+    FloatDescriptor,
+    IL,
+    IntegerDescriptor,
+    TextDescriptor,
+    TypeDescriptor,
+} from '@composita/il';
 import { Optional } from '@composita/ts-utility-types';
 import { Task } from './tasks';
 import { Interpreter } from './interpreter';
 import { BidirectionalConnection, SystemHandle } from './syscallhandler';
-import { ActiveValue, ArrayVariableValue, ComponentValue, ProcedureValue, ServiceValue, VariableValue } from './values';
+import {
+    ActiveValue,
+    ArrayVariableValue,
+    ComponentValue,
+    IntegerValue,
+    ProcedureValue,
+    ServiceValue,
+    VariableValue,
+    VariableValueType,
+} from './values';
 
 export class Runtime implements SystemHandle {
-    private constructor() {
-        /* prevent creating multiple runtimes. */
-    }
-
-    static getInstance(): Runtime {
-        if (this.instance === undefined) {
-            this.instance = new Runtime();
-        }
-        return this.instance;
-    }
-
-    private static instance: Optional<Runtime> = undefined;
-
     private scheduler: Scheduler = new Scheduler();
     private nextTaskId = 0;
     private stop = false;
@@ -43,7 +48,7 @@ export class Runtime implements SystemHandle {
         this.isRunning = fn;
     }
 
-    async time(): Promise<number> {
+    time(): number {
         return new Date().getMilliseconds();
     }
 
@@ -73,13 +78,34 @@ export class Runtime implements SystemHandle {
         this.out(...msgs);
     }
 
+    private getDefaultVariableValue(type: TypeDescriptor): VariableValueType {
+        if (type instanceof IntegerDescriptor) {
+            return new IntegerValue();
+        }
+        if (type instanceof FloatDescriptor) {
+            return new IntegerValue();
+        }
+        if (type instanceof TextDescriptor) {
+            return new IntegerValue();
+        }
+        if (type instanceof CharacterDescriptor) {
+            return new IntegerValue();
+        }
+        if (type instanceof BooleanDescriptor) {
+            return new IntegerValue();
+        }
+        return undefined;
+    }
+
     createComponent(type: ComponentDescriptor, container: Optional<ActiveValue>): ComponentValue {
         const component = new ComponentValue(type, container);
         type.declarations.variables.forEach((descriptor) => {
             if (descriptor.indexTypes.length > 0) {
                 component.variables.push(new ArrayVariableValue(descriptor, new Map()));
             } else {
-                component.variables.push(new VariableValue(descriptor, undefined, descriptor.mutable));
+                component.variables.push(
+                    new VariableValue(descriptor, this.getDefaultVariableValue(descriptor.type), descriptor.mutable),
+                );
             }
         });
         type.declarations.procedures.forEach((descriptor) =>

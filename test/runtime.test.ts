@@ -17,7 +17,64 @@ export class OutputCapture {
     }
 }
 
-tape('Runtime.getInstance() Hello World', async (test) => {
+tape('For By Dec Loop', async (test) => {
+    const code = `COMPONENT { ENTRYPOINT } ForLoop;
+  VARIABLE i: INTEGER;
+BEGIN
+FOR i := 9 TO 1 BY -3 DO
+  WRITE("Hello World"); WRITELINE
+END
+END ForLoop;`;
+    const outputCapture = new OutputCapture();
+    const uri = '';
+    const compiler = new Compiler();
+    const il = await compiler.compile(uri, code);
+    const runtime = new Runtime();
+    runtime.changeOutput(outputCapture.capture.bind(outputCapture));
+    await runtime.execute(il);
+    test.equal(outputCapture.getOutput(), 'Hello World\nHello World\nHello World\n', 'For By Dec Loop Complete.');
+    test.end();
+});
+
+tape('For By Loop', async (test) => {
+    const code = `COMPONENT { ENTRYPOINT } ForLoop;
+    VARIABLE i: INTEGER;
+BEGIN
+  FOR i := 1 TO 9 BY 3 DO
+    WRITE("Hello World"); WRITELINE
+  END
+END ForLoop;`;
+    const outputCapture = new OutputCapture();
+    const uri = '';
+    const compiler = new Compiler();
+    const il = await compiler.compile(uri, code);
+    const runtime = new Runtime();
+    runtime.changeOutput(outputCapture.capture.bind(outputCapture));
+    await runtime.execute(il);
+    test.equal(outputCapture.getOutput(), 'Hello World\nHello World\nHello World\n', 'For By Loop Complete.');
+    test.end();
+});
+
+tape('For Loop', async (test) => {
+    const code = `COMPONENT { ENTRYPOINT } ForLoop;
+    VARIABLE i: INTEGER;
+BEGIN
+  FOR i := 1 TO 3 DO
+    WRITE("Hello World"); WRITELINE
+  END
+END ForLoop;`;
+    const outputCapture = new OutputCapture();
+    const uri = '';
+    const compiler = new Compiler();
+    const il = await compiler.compile(uri, code);
+    const runtime = new Runtime();
+    runtime.changeOutput(outputCapture.capture.bind(outputCapture));
+    await runtime.execute(il);
+    test.equal(outputCapture.getOutput(), 'Hello World\nHello World\nHello World\n', 'For Loop Complete.');
+    test.end();
+});
+
+tape('Hello World', async (test) => {
     const code = `COMPONENT { ENTRYPOINT } HelloWorld;
   BEGIN
     WRITE("Hello World"); WRITELINE
@@ -26,9 +83,9 @@ END HelloWorld;`;
     const uri = '';
     const compiler = new Compiler();
     const il = await compiler.compile(uri, code);
-    Runtime.getInstance().reset();
-    Runtime.getInstance().changeOutput(outputCapture.capture.bind(outputCapture));
-    await Runtime.getInstance().execute(il);
+    const runtime = new Runtime();
+    runtime.changeOutput(outputCapture.capture.bind(outputCapture));
+    await runtime.execute(il);
     test.equal(outputCapture.getOutput(), 'Hello World\n', 'Hello World Complete.');
     test.end();
 });
@@ -44,12 +101,12 @@ COMPONENT { ENTRYPOINT } HelloWorld2;
     WRITE("Hello World2\n")
 END HelloWorld2;`;
     const outputCapture = new OutputCapture();
-    Runtime.getInstance().reset();
-    Runtime.getInstance().changeOutput(outputCapture.capture.bind(outputCapture));
     const uri = '';
     const compiler = new Compiler();
     const il = await compiler.compile(uri, code);
-    await Runtime.getInstance().execute(il);
+    const runtime = new Runtime();
+    runtime.changeOutput(outputCapture.capture.bind(outputCapture));
+    await runtime.execute(il);
     test.equal(outputCapture.getOutput(), 'Hello WorldHello World2\n\n', 'Hello World Complete.');
     test.end();
 });
@@ -86,12 +143,12 @@ FINALLY
   WRITE("FINALLY")
 END NewHelloWorld;`;
     const outputCapture = new OutputCapture();
-    Runtime.getInstance().reset();
-    Runtime.getInstance().changeOutput(outputCapture.capture.bind(outputCapture));
     const uri = '';
     const compiler = new Compiler();
     const il = await compiler.compile(uri, code);
-    await Runtime.getInstance().execute(il);
+    const runtime = new Runtime();
+    runtime.changeOutput(outputCapture.capture.bind(outputCapture));
+    await runtime.execute(il);
     test.equal(
         outputCapture.getOutput(),
         '1FINALLY1a2b3c4d5e6f7OHD89Hello World\nFINALLY',
@@ -106,12 +163,12 @@ BEGIN
   WRITE(ARCSIN(0.))
 END Expr;`;
     const outputCapture = new OutputCapture();
-    Runtime.getInstance().reset();
-    Runtime.getInstance().changeOutput(outputCapture.capture.bind(outputCapture));
     const uri = '';
     const compiler = new Compiler();
     const il = await compiler.compile(uri, code);
-    await Runtime.getInstance().execute(il);
+    const runtime = new Runtime();
+    runtime.changeOutput(outputCapture.capture.bind(outputCapture));
+    await runtime.execute(il);
     test.equal(outputCapture.getOutput(), '0', 'ARCSIN(0).');
     test.end();
 });
@@ -122,12 +179,12 @@ BEGIN
 WRITE(COS(PI))
 END Expr;`;
     const outputCapture = new OutputCapture();
-    Runtime.getInstance().reset();
-    Runtime.getInstance().changeOutput(outputCapture.capture.bind(outputCapture));
     const uri = '';
     const compiler = new Compiler();
     const il = await compiler.compile(uri, code);
-    await Runtime.getInstance().execute(il);
+    const runtime = new Runtime();
+    runtime.changeOutput(outputCapture.capture.bind(outputCapture));
+    await runtime.execute(il);
     test.equal(outputCapture.getOutput(), '-1', 'COS(PI).');
     test.end();
 });
@@ -140,12 +197,12 @@ tape('Basic if false comparison.', async (test) => {
     END
 END Expr;`;
     const outputCapture = new OutputCapture();
-    Runtime.getInstance().reset();
-    Runtime.getInstance().changeOutput(outputCapture.capture.bind(outputCapture));
     const uri = '';
     const compiler = new Compiler();
     const il = await compiler.compile(uri, code);
-    await Runtime.getInstance().execute(il);
+    const runtime = new Runtime();
+    runtime.changeOutput(outputCapture.capture.bind(outputCapture));
+    await runtime.execute(il);
     test.equal(outputCapture.getOutput(), '', '2 < 1 + 1 false.');
     test.end();
 });
@@ -158,12 +215,12 @@ tape('Another basic if false comparison.', async (test) => {
     END
 END Expr;`;
     const outputCapture = new OutputCapture();
-    Runtime.getInstance().reset();
-    Runtime.getInstance().changeOutput(outputCapture.capture.bind(outputCapture));
     const uri = '';
     const compiler = new Compiler();
     const il = await compiler.compile(uri, code);
-    await Runtime.getInstance().execute(il);
+    const runtime = new Runtime();
+    runtime.changeOutput(outputCapture.capture.bind(outputCapture));
+    await runtime.execute(il);
     test.equal(outputCapture.getOutput(), '', '1 + 1 < 2 false.');
     test.end();
 });
@@ -176,12 +233,12 @@ tape('Basic if true comparison.', async (test) => {
     END
 END Expr;`;
     const outputCapture = new OutputCapture();
-    Runtime.getInstance().reset();
-    Runtime.getInstance().changeOutput(outputCapture.capture.bind(outputCapture));
     const uri = '';
     const compiler = new Compiler();
     const il = await compiler.compile(uri, code);
-    await Runtime.getInstance().execute(il);
+    const runtime = new Runtime();
+    runtime.changeOutput(outputCapture.capture.bind(outputCapture));
+    await runtime.execute(il);
     test.equal(outputCapture.getOutput(), 'TRUE', '2 <= 1 + 1.');
     test.end();
 });
@@ -194,12 +251,12 @@ tape('Another basic if true comparison.', async (test) => {
     END
 END Expr;`;
     const outputCapture = new OutputCapture();
-    Runtime.getInstance().reset();
-    Runtime.getInstance().changeOutput(outputCapture.capture.bind(outputCapture));
     const uri = '';
     const compiler = new Compiler();
     const il = await compiler.compile(uri, code);
-    await Runtime.getInstance().execute(il);
+    const runtime = new Runtime();
+    runtime.changeOutput(outputCapture.capture.bind(outputCapture));
+    await runtime.execute(il);
     test.equal(outputCapture.getOutput(), 'TRUE', '1 + 1 <= 2.');
     test.end();
 });
@@ -210,12 +267,12 @@ tape('Basic Math.', async (test) => {
     WRITE(1 + 10 - 11)
 END Expr;`;
     const outputCapture = new OutputCapture();
-    Runtime.getInstance().reset();
-    Runtime.getInstance().changeOutput(outputCapture.capture.bind(outputCapture));
     const uri = '';
     const compiler = new Compiler();
     const il = await compiler.compile(uri, code);
-    await Runtime.getInstance().execute(il);
+    const runtime = new Runtime();
+    runtime.changeOutput(outputCapture.capture.bind(outputCapture));
+    await runtime.execute(il);
     test.equal(outputCapture.getOutput(), '0', '1 + 10 - 11 = 0.');
     test.end();
 });
@@ -228,12 +285,12 @@ tape('Another basic comparison.', async (test) => {
     END
 END Expr;`;
     const outputCapture = new OutputCapture();
-    Runtime.getInstance().reset();
-    Runtime.getInstance().changeOutput(outputCapture.capture.bind(outputCapture));
     const uri = '';
     const compiler = new Compiler();
     const il = await compiler.compile(uri, code);
-    await Runtime.getInstance().execute(il);
+    const runtime = new Runtime();
+    runtime.changeOutput(outputCapture.capture.bind(outputCapture));
+    await runtime.execute(il);
     test.equal(outputCapture.getOutput(), '', '1 + 10 < 1 false.');
     test.end();
 });
@@ -244,12 +301,12 @@ tape('Basic Math.', async (test) => {
     WRITE(-1 + 10 - 11)
 END Expr;`;
     const outputCapture = new OutputCapture();
-    Runtime.getInstance().reset();
-    Runtime.getInstance().changeOutput(outputCapture.capture.bind(outputCapture));
     const uri = '';
     const compiler = new Compiler();
     const il = await compiler.compile(uri, code);
-    await Runtime.getInstance().execute(il);
+    const runtime = new Runtime();
+    runtime.changeOutput(outputCapture.capture.bind(outputCapture));
+    await runtime.execute(il);
     test.equal(outputCapture.getOutput(), '-2', '-2 + 10 - 11 = -2.');
     test.end();
 });
@@ -260,12 +317,12 @@ tape('Basic Math.', async (test) => {
     WRITE(1. / 2. * 3.)
 END Expr;`;
     const outputCapture = new OutputCapture();
-    Runtime.getInstance().reset();
-    Runtime.getInstance().changeOutput(outputCapture.capture.bind(outputCapture));
     const uri = '';
     const compiler = new Compiler();
     const il = await compiler.compile(uri, code);
-    await Runtime.getInstance().execute(il);
+    const runtime = new Runtime();
+    runtime.changeOutput(outputCapture.capture.bind(outputCapture));
+    await runtime.execute(il);
     test.equal(outputCapture.getOutput(), '1.5', '1 / 2 * 3 = 1.5.');
     test.end();
 });
@@ -278,12 +335,12 @@ tape('Basic Math with Variable.', async (test) => {
     WRITE(v)
 END Expr;`;
     const outputCapture = new OutputCapture();
-    Runtime.getInstance().reset();
-    Runtime.getInstance().changeOutput(outputCapture.capture.bind(outputCapture));
     const uri = '';
     const compiler = new Compiler();
     const il = await compiler.compile(uri, code);
-    await Runtime.getInstance().execute(il);
+    const runtime = new Runtime();
+    runtime.changeOutput(outputCapture.capture.bind(outputCapture));
+    await runtime.execute(il);
     test.equal(outputCapture.getOutput(), '-8', '5 - 3 * 7 + 8 = -8');
     test.end();
 });

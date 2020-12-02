@@ -17,7 +17,7 @@ import {
 
 export interface SystemHandle {
     print(...msgs: Array<string>): void;
-    time(): Promise<number>;
+    time(): number;
     createComponent(type: ComponentDescriptor, container: Optional<ActiveValue>): ComponentValue;
     register(active: ActiveValue): void;
     connect(client: ServiceValue, server: ServiceValue): BidirectionalConnection;
@@ -237,7 +237,7 @@ export class SyscallInterpreter {
                 }
                 break;
         }
-        throw new Error(`Failed system call '${SystemCallOperator[op]}' and two argumentss. Operation not supported.`);
+        throw new Error(`Failed system call '${SystemCallOperator[op]}' and two arguments. Operation not supported.`);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

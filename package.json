@@ -1,6 +1,6 @@
 {
   "name": "@composita/runtime",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Composita language runtime.",
   "main": "dist/cjs/runtime.js",
   "module": "dist/esm/runtime.js",
@@ -42,7 +42,7 @@
   },
   "homepage": "https://www.composita.dev/",
   "devDependencies": {
-    "@composita/compiler": "^0.3.1",
+    "@composita/compiler": "^0.3.2",
     "@types/node": "^14.14.10",
     "@types/tape": "^4.13.0",
     "@typescript-eslint/eslint-plugin": "^4.9.0",
