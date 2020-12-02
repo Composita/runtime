@@ -111,7 +111,6 @@ export abstract class ActiveValue {
         }
         this.lastActiveCode = this.activeCode;
         this.activeCode = ActiveCode.Finally;
-        console.log('FINALLY CALLED');
     }
 
     isDone(): boolean {
@@ -134,11 +133,6 @@ export abstract class ActiveValue {
         if (this.isDone() || !this.activeDone()) {
             return;
         }
-        if (this.activeCode === ActiveCode.Finally && this.lastActiveCode === ActiveCode.Finally) {
-            console.log('DONE');
-            this.done = true;
-            return;
-        }
         // Done with current code section
         if (this.activeCode === ActiveCode.Init) {
             this.lastActiveCode = this.activeCode;
@@ -158,17 +152,15 @@ export abstract class ActiveValue {
             this.updateActiveSection();
             return;
         }
-        if (this.activeCode === ActiveCode.Finally) {
-            console.log('next up finally');
-            this.lastActiveCode = this.activeCode;
-            this.activeCode = ActiveCode.Finally;
-            this.updateActiveSection();
-            return;
-        }
         if (this.activeCode === ActiveCode.Procedure) {
             this.activeCode = this.lastActiveCode;
             this.lastActiveCode = ActiveCode.Procedure;
             this.updateActiveSection();
+            return;
+        }
+        if (this.activeCode === ActiveCode.Finally) {
+            this.lastActiveCode = this.activeCode;
+            this.done = true;
             return;
         }
     }

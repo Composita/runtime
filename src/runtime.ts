@@ -43,15 +43,6 @@ export class Runtime implements SystemHandle {
         this.isRunning = fn;
     }
 
-    async haltProcess(processId: number): Promise<void> {
-        this.scheduler.killTask(processId);
-    }
-
-    async haltProcessWithCode(processId: number, n: number): Promise<void> {
-        await this.print(`Halting process, code ${n}`);
-        this.scheduler.killTask(processId);
-    }
-
     async time(): Promise<number> {
         return new Date().getMilliseconds();
     }
@@ -61,10 +52,10 @@ export class Runtime implements SystemHandle {
     async execute(il: IL): Promise<void> {
         this.stop = false;
         this.currentIl = il;
-        await this.run();
+        this.run();
     }
 
-    async run(): Promise<void> {
+    run(): void {
         this.isRunning(true);
         this.currentIl?.entryPoints.forEach((descriptor) => {
             const component = this.createComponent(descriptor, undefined);
@@ -72,13 +63,13 @@ export class Runtime implements SystemHandle {
         });
         let task = this.scheduler.getActiveTask();
         while (task !== undefined && !this.stop) {
-            await task.execute();
+            task.execute();
             task = this.scheduler.getActiveTask();
         }
         this.isRunning(false);
     }
 
-    async print(...msgs: Array<string>): Promise<void> {
+    print(...msgs: Array<string>): void {
         this.out(...msgs);
     }
 

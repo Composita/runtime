@@ -36,15 +36,13 @@ export class Task {
 
     private state = TaskState.Ready;
 
-    async execute(): Promise<void> {
+    execute(): void {
         if (this.isDone() || this.interpreter.isDone()) {
-            console.log(this.id);
-            console.log('DONE DONE DONE');
             this.state = TaskState.Done;
             return;
         }
         this.state = TaskState.Running;
-        await this.interpreter.processNext();
+        this.interpreter.processNext();
     }
 
     pause(): void {

@@ -16,7 +16,7 @@ import {
 } from './values';
 
 export interface SystemHandle {
-    print(...msgs: Array<string>): Promise<void>;
+    print(...msgs: Array<string>): void;
     time(): Promise<number>;
     createComponent(type: ComponentDescriptor, container: Optional<ActiveValue>): ComponentValue;
     register(active: ActiveValue): void;
@@ -45,16 +45,16 @@ export class BidirectionalConnection {
 export class SyscallInterpreter {
     constructor(private readonly system: SystemHandle) {}
 
-    private async handleNoArg(op: SystemCallOperator): Promise<Optional<StackValue>> {
+    private handleNoArg(op: SystemCallOperator): Optional<StackValue> {
         switch (op) {
             case SystemCallOperator.WriteLine:
-                await this.system.print('\n');
-                return;
+                this.system.print('\n');
+                return undefined;
         }
         throw new Error(`Failed system call '${SystemCallOperator[op]}' and zero argumentss. Operation not supported.`);
     }
 
-    private async handleSingleArg(op: SystemCallOperator, value: StackValue): Promise<Optional<StackValue>> {
+    private handleSingleArg(op: SystemCallOperator, value: StackValue): Optional<StackValue> {
         switch (op) {
             case SystemCallOperator.Write:
                 value = Interpreter.tryLoadVariableValue(value);
@@ -64,14 +64,14 @@ export class SyscallInterpreter {
                     value instanceof FloatValue ||
                     value instanceof IntegerValue
                 ) {
-                    await this.system.print(value.value.toString());
+                    this.system.print(value.value.toString());
                     return undefined;
                 }
                 break;
             case SystemCallOperator.WriteHex:
                 value = Interpreter.tryLoadVariableValue(value);
                 if (value instanceof IntegerValue) {
-                    await this.system.print(value.value.toString(16));
+                    this.system.print(value.value.toString(16));
                     return undefined;
                 }
                 break;
@@ -195,11 +195,7 @@ export class SyscallInterpreter {
         throw new Error(`Failed system call '${SystemCallOperator[op]}' and one argument. Operation not supported.`);
     }
 
-    private async handleDoubleArg(
-        op: SystemCallOperator,
-        value: StackValue,
-        value2: StackValue,
-    ): Promise<Optional<StackValue>> {
+    private handleDoubleArg(op: SystemCallOperator, value: StackValue, value2: StackValue): Optional<StackValue> {
         switch (op) {
             case SystemCallOperator.Assert:
                 value = Interpreter.tryLoadVariableValue(value);
@@ -245,23 +241,23 @@ export class SyscallInterpreter {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    private async handleForEachCall(_args: Array<StackValue>): Promise<Optional<StackValue>> {
+    private handleForEachCall(_args: Array<StackValue>): Optional<StackValue> {
         // TODO
         throw new Error('Runtime: Foreach not yet supported.');
         //return undefined;
     }
 
-    async handle(op: SystemCallOperator, args: Array<StackValue>): Promise<Optional<StackValue>> {
+    handle(op: SystemCallOperator, args: Array<StackValue>): Optional<StackValue> {
         if (op === SystemCallOperator.LoadForEachDesignators) {
             return this.handleForEachCall(args);
         }
         switch (args.length) {
             case 0:
-                return await this.handleNoArg(op);
+                return this.handleNoArg(op);
             case 1:
-                return await this.handleSingleArg(op, args[0]);
+                return this.handleSingleArg(op, args[0]);
             case 2:
-                return await this.handleDoubleArg(op, args[0], args[1]);
+                return this.handleDoubleArg(op, args[0], args[1]);
             default:
                 throw new Error(`Failed system call '${op}' with ${args.length} arguments. Operation not supported.`);
         }

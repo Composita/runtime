@@ -26,7 +26,6 @@ import {
     ComponentValue,
     FloatValue,
     IntegerValue,
-    ProcedureValue,
     ServiceValue,
     TextValue,
     VariableValue,
@@ -66,7 +65,7 @@ export class Interpreter {
         );
     }
 
-    private async add(): Promise<void> {
+    private add(): void {
         const right = Interpreter.tryLoadVariableValue(this.evalStack.pop());
         const left = Interpreter.tryLoadVariableValue(this.evalStack.pop());
         if (right instanceof TextValue && left instanceof TextValue) {
@@ -84,7 +83,7 @@ export class Interpreter {
         throw new Error(`Add operation failed.`);
     }
 
-    private async sub(): Promise<void> {
+    private sub(): void {
         const right = Interpreter.tryLoadVariableValue(this.evalStack.pop());
         const left = Interpreter.tryLoadVariableValue(this.evalStack.pop());
         if (right instanceof FloatValue && left instanceof FloatValue) {
@@ -98,7 +97,7 @@ export class Interpreter {
         throw new Error(`Sub operation failed.`);
     }
 
-    private async mul(): Promise<void> {
+    private mul(): void {
         const right = Interpreter.tryLoadVariableValue(this.evalStack.pop());
         const left = Interpreter.tryLoadVariableValue(this.evalStack.pop());
         if (right instanceof FloatValue && left instanceof FloatValue) {
@@ -112,7 +111,7 @@ export class Interpreter {
         throw new Error(`Mul operation failed.`);
     }
 
-    private async div(): Promise<void> {
+    private div(): void {
         const right = Interpreter.tryLoadVariableValue(this.evalStack.pop());
         const left = Interpreter.tryLoadVariableValue(this.evalStack.pop());
         if (right instanceof FloatValue && left instanceof FloatValue) {
@@ -126,7 +125,7 @@ export class Interpreter {
         throw new Error(`Div operation failed.`);
     }
 
-    private async negate(): Promise<void> {
+    private negate(): void {
         const right = Interpreter.tryLoadVariableValue(this.evalStack.pop());
         if (right instanceof FloatValue) {
             this.evalStack.push(new FloatValue(-right.value));
@@ -139,7 +138,7 @@ export class Interpreter {
         throw new Error(`Negate operation failed.`);
     }
 
-    private async mod(): Promise<void> {
+    private mod(): void {
         const right = Interpreter.tryLoadVariableValue(this.evalStack.pop());
         const left = Interpreter.tryLoadVariableValue(this.evalStack.pop());
         if (right instanceof FloatValue && left instanceof FloatValue) {
@@ -153,11 +152,11 @@ export class Interpreter {
         throw new Error(`Mod operation failed.`);
     }
 
-    private async handleComparable(
+    private handleComparable(
         left: StackValue,
         right: StackValue,
         fn: (left: number | string, right: number | string) => boolean,
-    ): Promise<void> {
+    ): void {
         left = Interpreter.tryLoadVariableValue(left) ?? left;
         right = Interpreter.tryLoadVariableValue(right) ?? right;
         if (left instanceof IntegerValue && right instanceof IntegerValue) {
@@ -179,11 +178,11 @@ export class Interpreter {
         throw new Error(`Unsupported less/greater comparison.`);
     }
 
-    private async handleEquatable(
+    private handleEquatable(
         left: StackValue,
         right: StackValue,
         fn: (left: number | boolean | string, right: number | boolean | string) => boolean,
-    ): Promise<void> {
+    ): void {
         left = Interpreter.tryLoadVariableValue(left) ?? left;
         right = Interpreter.tryLoadVariableValue(right) ?? right;
         if (left instanceof BooleanValue && right instanceof BooleanValue) {
@@ -209,7 +208,7 @@ export class Interpreter {
         throw new Error(`Unsupported equality comparison.`);
     }
 
-    private async handleCompareOp(op: OperatorCode): Promise<void> {
+    private handleCompareOp(op: OperatorCode): void {
         const right = Interpreter.tryLoadVariableValue(this.evalStack.pop());
         if (right === undefined) {
             throw new Error(`Unknown right compare argument.`);
@@ -220,28 +219,28 @@ export class Interpreter {
         }
         switch (op) {
             case OperatorCode.Equal:
-                await this.handleEquatable(left, right, (l, r) => l === r);
+                this.handleEquatable(left, right, (l, r) => l === r);
                 return;
             case OperatorCode.NotEqual:
-                await this.handleEquatable(left, right, (l, r) => l !== r);
+                this.handleEquatable(left, right, (l, r) => l !== r);
                 return;
             case OperatorCode.Less:
-                await this.handleComparable(left, right, (l, r) => l < r);
+                this.handleComparable(left, right, (l, r) => l < r);
                 return;
             case OperatorCode.LessEqual:
-                await this.handleComparable(left, right, (l, r) => l <= r);
+                this.handleComparable(left, right, (l, r) => l <= r);
                 return;
             case OperatorCode.Greater:
-                await this.handleComparable(left, right, (l, r) => l > r);
+                this.handleComparable(left, right, (l, r) => l > r);
                 return;
             case OperatorCode.GreaterEqual:
-                await this.handleComparable(left, right, (l, r) => l >= r);
+                this.handleComparable(left, right, (l, r) => l >= r);
                 return;
         }
         throw new Error(`Unsupprted compare op.`);
     }
 
-    private async not(): Promise<void> {
+    private not(): void {
         const right = Interpreter.tryLoadVariableValue(this.evalStack.pop());
         if (right instanceof BooleanValue) {
             this.evalStack.push(new BooleanValue(!right.value));
@@ -250,7 +249,7 @@ export class Interpreter {
         throw new Error(`Not operation failed.`);
     }
 
-    private async or(): Promise<void> {
+    private or(): void {
         const right = Interpreter.tryLoadVariableValue(this.evalStack.pop());
         const left = Interpreter.tryLoadVariableValue(this.evalStack.pop());
         if (right instanceof BooleanValue && left instanceof BooleanValue) {
@@ -260,7 +259,7 @@ export class Interpreter {
         throw new Error(`Or operation failed.`);
     }
 
-    private async and(): Promise<void> {
+    private and(): void {
         const right = Interpreter.tryLoadVariableValue(this.evalStack.pop());
         const left = Interpreter.tryLoadVariableValue(this.evalStack.pop());
         if (right instanceof BooleanValue && left instanceof BooleanValue) {
@@ -270,33 +269,16 @@ export class Interpreter {
         throw new Error(`And operation failed.`);
     }
 
-    private async handleNewVariable(
-        target: VariableValue,
-        type: ComponentDescriptor | BuiltInTypeDescriptor,
-    ): Promise<void> {
+    private handleNewVariable(target: VariableValue, type: ComponentDescriptor | BuiltInTypeDescriptor): void {
         if (!target.mutable) {
             throw new Error('Cannot NEW instanciate a constant value.');
         }
         if (type instanceof ComponentDescriptor) {
-            const component = new ComponentValue(type, this.container);
-            type.declarations.variables.forEach((descriptor) => {
-                if (descriptor.indexTypes.length > 0) {
-                    component.variables.push(new ArrayVariableValue(descriptor, new Map()));
-                } else {
-                    component.variables.push(new VariableValue(descriptor, undefined, descriptor.mutable));
-                }
-            });
-            type.declarations.procedures.forEach((descriptor) =>
-                component.procedures.push(new ProcedureValue(descriptor, component)),
-            );
-            type.implementations.forEach((descriptor) =>
-                component.services.push(new ServiceValue(descriptor, component)),
-            );
-            if (target.value !== undefined && target.value instanceof ComponentValue) {
+            if (target.value instanceof ComponentValue) {
                 target.value.finalize();
-                console.log(target.value);
             }
-            target.value = this.system.createComponent(type, this.container);
+            const component = this.system.createComponent(type, this.container);
+            target.value = component;
             this.system.register(component);
             return;
         }
@@ -309,10 +291,10 @@ export class Interpreter {
         throw new Error('NEW built in variable not yet supported.');
     }
 
-    private async handleNewArrayVariable(
+    private handleNewArrayVariable(
         target: ArrayVariableValue,
         type: ComponentDescriptor | BuiltInTypeDescriptor,
-    ): Promise<void> {
+    ): void {
         const index = new Array<StackValue>();
         target.descriptor.indexTypes.forEach(() => index.push(Interpreter.tryLoadVariableValue(this.evalStack.pop())));
         const entry = new VariableValue(target.descriptor, undefined, false);
@@ -320,7 +302,7 @@ export class Interpreter {
         target.value.set(index, entry);
     }
 
-    private async handleNew(operands: Array<InstructionArgument>): Promise<void> {
+    private handleNew(operands: Array<InstructionArgument>): void {
         const type = operands[0];
         if (
             operands.length !== 1 ||
@@ -343,7 +325,7 @@ export class Interpreter {
         throw new Error('Unsupported NEW. NEW target must be a variable.');
     }
 
-    private async handleDelete(): Promise<void> {
+    private handleDelete(): void {
         const target = this.evalStack.pop();
         if (!(target instanceof VariableValue || target instanceof ArrayVariableValue)) {
             throw new Error('Only variables can be deleted.');
@@ -367,7 +349,7 @@ export class Interpreter {
         target.value.delete(index);
     }
 
-    private async handleClientSend(operands: Array<InstructionArgument>): Promise<void> {
+    private handleClientSend(operands: Array<InstructionArgument>): void {
         if (operands.length !== 1 || !(operands[0] instanceof MessageDescriptor)) {
             throw new Error('MessageDescritpr required for sending.');
         }
@@ -378,32 +360,32 @@ export class Interpreter {
         // TODO
     }
 
-    private async handleClientReceive(operands: Array<InstructionArgument>): Promise<void> {
+    private handleClientReceive(operands: Array<InstructionArgument>): void {
         if (operands.length !== 1 || !(operands[0] instanceof MessageDescriptor)) {
             throw new Error('MessageDescritpr required for sending.');
         }
         // TODO
     }
 
-    private async handleServerSend(operands: Array<InstructionArgument>): Promise<void> {
+    private handleServerSend(operands: Array<InstructionArgument>): void {
         if (operands.length !== 1 || !(operands[0] instanceof MessageDescriptor)) {
             throw new Error('MessageDescritpr required for sending.');
         }
     }
 
-    private async handleServerReceive(operands: Array<InstructionArgument>): Promise<void> {
+    private handleServerReceive(operands: Array<InstructionArgument>): void {
         if (operands.length !== 1 || !(operands[0] instanceof MessageDescriptor)) {
             throw new Error('MessageDescritpr required for sending.');
         }
     }
 
-    private async handleConnect(operands: Array<InstructionArgument>): Promise<void> {
+    private handleConnect(operands: Array<InstructionArgument>): void {
         if (operands.length !== 1 || !(operands[0] instanceof MessageDescriptor)) {
             throw new Error('MessageDescritpr required for sending.');
         }
     }
 
-    private async handleDisconnect(): Promise<void> {
+    private handleDisconnect(): void {
         const target = this.evalStack.pop();
         if (!(target instanceof ServiceValue)) {
             throw new Error('Cannot disconnect unknown service.');
@@ -414,19 +396,19 @@ export class Interpreter {
         // TODO anything else?
     }
 
-    private async handleClientReceiveCheck(operands: Array<InstructionArgument>): Promise<void> {
+    private handleClientReceiveCheck(operands: Array<InstructionArgument>): void {
         if (operands.length !== 1 || !(operands[0] instanceof MessageDescriptor)) {
             throw new Error('MessageDescritpr required for sending.');
         }
     }
 
-    private async handleServerReceiveCheck(operands: Array<InstructionArgument>): Promise<void> {
+    private handleServerReceiveCheck(operands: Array<InstructionArgument>): void {
         if (operands.length !== 1 || !(operands[0] instanceof MessageDescriptor)) {
             throw new Error('MessageDescritpr required for sending.');
         }
     }
 
-    private async handleSystemCall(operands: Array<InstructionArgument>): Promise<void> {
+    private handleSystemCall(operands: Array<InstructionArgument>): void {
         if (operands.length !== 1 || !(operands[0] instanceof SystemCallDescriptor)) {
             throw new Error('Invalid system call.');
         }
@@ -445,13 +427,13 @@ export class Interpreter {
         for (let i = 0; i < call.arguments[0].initialValue; ++i) {
             stackArgs.push(this.evalStack.pop());
         }
-        const returnValue = await this.systemCallHandler.handle(call.systemCall, stackArgs);
+        const returnValue = this.systemCallHandler.handle(call.systemCall, stackArgs);
         if (returnValue !== undefined) {
             this.evalStack.push(returnValue);
         }
     }
 
-    private async handleProcedurecall(operands: Array<InstructionArgument>): Promise<void> {
+    private handleProcedurecall(operands: Array<InstructionArgument>): void {
         if (operands.length !== 1 || !(operands[0] instanceof ProcedureDescriptor)) {
             throw new Error('Invalid procedure call.');
         }
@@ -468,11 +450,11 @@ export class Interpreter {
         this.container.call(operands[0], args);
     }
 
-    private async handleReturn(): Promise<void> {
+    private handleReturn(): void {
         this.container.procedureReturned();
     }
 
-    private async loadBoolean(operands: Array<InstructionArgument>): Promise<void> {
+    private loadBoolean(operands: Array<InstructionArgument>): void {
         if (operands.length > 0 && operands[0] instanceof BooleanDescriptor) {
             this.evalStack.push(new BooleanValue(operands[0].initialValue));
             return;
@@ -480,7 +462,7 @@ export class Interpreter {
         throw new Error(`Boolean load operation failed.`);
     }
 
-    private async loadText(operands: Array<InstructionArgument>): Promise<void> {
+    private loadText(operands: Array<InstructionArgument>): void {
         if (operands.length >= 1 && operands[0] instanceof TextDescriptor) {
             this.evalStack.push(new TextValue(operands[0].initialValue));
             return;
@@ -488,7 +470,7 @@ export class Interpreter {
         throw new Error(`Text load operation failed.`);
     }
 
-    private async loadCharacter(operands: Array<InstructionArgument>): Promise<void> {
+    private loadCharacter(operands: Array<InstructionArgument>): void {
         if (operands.length >= 1 && operands[0] instanceof CharacterDescriptor) {
             this.evalStack.push(new CharacterValue(operands[0].initialValue));
             return;
@@ -496,7 +478,7 @@ export class Interpreter {
         throw new Error(`Character load operation failed.`);
     }
 
-    private async loadFloat(operands: Array<InstructionArgument>): Promise<void> {
+    private loadFloat(operands: Array<InstructionArgument>): void {
         if (operands.length > 0 && operands[0] instanceof FloatDescriptor) {
             this.evalStack.push(new FloatValue(operands[0].initialValue));
             return;
@@ -504,7 +486,7 @@ export class Interpreter {
         throw new Error(`Float load operation failed.`);
     }
 
-    private async loadInteger(operands: Array<InstructionArgument>): Promise<void> {
+    private loadInteger(operands: Array<InstructionArgument>): void {
         if (operands.length > 0 && operands[0] instanceof IntegerDescriptor) {
             this.evalStack.push(new IntegerValue(operands[0].initialValue));
             return;
@@ -512,7 +494,7 @@ export class Interpreter {
         throw new Error(`Integer load operation failed.`);
     }
 
-    private async storeVariable(): Promise<void> {
+    private storeVariable(): void {
         const value = Interpreter.tryLoadVariableValue(this.evalStack.pop());
         const variable = this.evalStack.pop();
         if (variable instanceof VariableValue) {
@@ -560,7 +542,7 @@ export class Interpreter {
         throw new Error(`Unsupported Variable Load.`);
     }
 
-    private async branch(operands: Array<InstructionArgument>): Promise<void> {
+    private branch(operands: Array<InstructionArgument>): void {
         if (operands.length !== 1) {
             throw new Error(`Branch conditions only have one operand.`);
         }
@@ -572,7 +554,7 @@ export class Interpreter {
         throw new Error(`Failed jump.`);
     }
 
-    private async branchConditionally(branch: boolean, operands: Array<InstructionArgument>): Promise<void> {
+    private branchConditionally(branch: boolean, operands: Array<InstructionArgument>): void {
         const condition = this.evalStack.pop();
         if (operands.length !== 1) {
             throw new Error(`Branch conditions only have one operand.`);
@@ -587,30 +569,32 @@ export class Interpreter {
         throw new Error(`Conditional jump failed.`);
     }
 
-    async processNext(): Promise<void> {
+    processNext(): void {
+        if (this.container.isDone()) {
+            return;
+        }
         const nextInstruction = this.container.fetch();
         if (nextInstruction === undefined) {
             return;
         }
-        //console.log(OperatorCode[nextInstruction.code]);
         switch (nextInstruction.code) {
             case OperatorCode.Add:
-                await this.add();
+                this.add();
                 break;
             case OperatorCode.Subtract:
-                await this.sub();
+                this.sub();
                 break;
             case OperatorCode.Multiply:
-                await this.mul();
+                this.mul();
                 break;
             case OperatorCode.Divide:
-                await this.div();
+                this.div();
                 break;
             case OperatorCode.Negate:
-                await this.negate();
+                this.negate();
                 break;
             case OperatorCode.Modulo:
-                await this.mod();
+                this.mod();
                 break;
             case OperatorCode.Equal:
             case OperatorCode.Less:
@@ -618,46 +602,46 @@ export class Interpreter {
             case OperatorCode.Greater:
             case OperatorCode.GreaterEqual:
             case OperatorCode.NotEqual:
-                await this.handleCompareOp(nextInstruction.code);
+                this.handleCompareOp(nextInstruction.code);
                 break;
             case OperatorCode.Not:
-                await this.not();
+                this.not();
                 break;
             case OperatorCode.LogicOr:
-                await this.or();
+                this.or();
                 break;
             case OperatorCode.LogicAnd:
-                await this.and();
+                this.and();
                 break;
             case OperatorCode.New:
-                await this.handleNew(nextInstruction.arguments);
+                this.handleNew(nextInstruction.arguments);
                 break;
             case OperatorCode.Delete:
                 this.handleDelete();
                 break;
             case OperatorCode.ClientSend:
-                await this.handleClientSend(nextInstruction.arguments);
+                this.handleClientSend(nextInstruction.arguments);
                 break;
             case OperatorCode.ClientReceive:
-                await this.handleClientReceive(nextInstruction.arguments);
+                this.handleClientReceive(nextInstruction.arguments);
                 break;
             case OperatorCode.ServerSend:
-                await this.handleServerSend(nextInstruction.arguments);
+                this.handleServerSend(nextInstruction.arguments);
                 break;
             case OperatorCode.ServerReceive:
-                await this.handleServerReceive(nextInstruction.arguments);
+                this.handleServerReceive(nextInstruction.arguments);
                 break;
             case OperatorCode.Connect:
-                await this.handleConnect(nextInstruction.arguments);
+                this.handleConnect(nextInstruction.arguments);
                 break;
             case OperatorCode.Disconnect:
-                await this.handleDisconnect();
+                this.handleDisconnect();
                 break;
             case OperatorCode.ClientReceiveTest:
-                await this.handleClientReceiveCheck(nextInstruction.arguments);
+                this.handleClientReceiveCheck(nextInstruction.arguments);
                 break;
             case OperatorCode.ServerReceiveTest:
-                await this.handleServerReceiveCheck(nextInstruction.arguments);
+                this.handleServerReceiveCheck(nextInstruction.arguments);
                 // TODO !!
                 break;
             case OperatorCode.ClientInputTest:
@@ -665,33 +649,33 @@ export class Interpreter {
             case OperatorCode.ServerInputTest:
                 throw new Error('Server side INPUT is not yet supportd.');
             case OperatorCode.SystemCall:
-                await this.handleSystemCall(nextInstruction.arguments);
+                this.handleSystemCall(nextInstruction.arguments);
                 break;
             case OperatorCode.ProcedureCall:
-                await this.handleProcedurecall(nextInstruction.arguments);
+                this.handleProcedurecall(nextInstruction.arguments);
                 break;
             case OperatorCode.Return:
-                await this.handleReturn();
+                this.handleReturn();
                 break;
             case OperatorCode.LoadConstantBoolean:
-                await this.loadBoolean(nextInstruction.arguments);
+                this.loadBoolean(nextInstruction.arguments);
                 break;
             case OperatorCode.LoadConstantText:
-                await this.loadText(nextInstruction.arguments);
+                this.loadText(nextInstruction.arguments);
                 break;
             case OperatorCode.LoadConstantCharacter:
-                await this.loadCharacter(nextInstruction.arguments);
+                this.loadCharacter(nextInstruction.arguments);
                 break;
             case OperatorCode.LoadConstantFloat:
-                await this.loadFloat(nextInstruction.arguments);
+                this.loadFloat(nextInstruction.arguments);
                 break;
             case OperatorCode.LoadConstantInteger:
-                await this.loadInteger(nextInstruction.arguments);
+                this.loadInteger(nextInstruction.arguments);
                 break;
             case OperatorCode.Move:
                 throw new Error('MOVE is not yet supported.');
             case OperatorCode.StoreVariable:
-                await this.storeVariable();
+                this.storeVariable();
                 break;
             case OperatorCode.LoadVariable:
                 this.loadVariable(nextInstruction.arguments);
@@ -720,13 +704,13 @@ export class Interpreter {
                 console.warn('Release EXCLUSIVE ignored.');
                 break;
             case OperatorCode.Branch:
-                await this.branch(nextInstruction.arguments);
+                this.branch(nextInstruction.arguments);
                 break;
             case OperatorCode.BranchTrue:
-                await this.branchConditionally(true, nextInstruction.arguments);
+                this.branchConditionally(true, nextInstruction.arguments);
                 break;
             case OperatorCode.BranchFalse:
-                await this.branchConditionally(false, nextInstruction.arguments);
+                this.branchConditionally(false, nextInstruction.arguments);
                 break;
             case OperatorCode.IsType:
                 throw new Error('IS typecheck is not yet supported.');

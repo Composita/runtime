@@ -92,7 +92,11 @@ END NewHelloWorld;`;
     const compiler = new Compiler();
     const il = await compiler.compile(uri, code);
     await Runtime.getInstance().execute(il);
-    test.equal(outputCapture.getOutput(), 'FINALLY1a2b3c4d5e6f7OOHD89HelloWorld\nFINALLY', 'Hello World Complete.');
+    test.equal(
+        outputCapture.getOutput(),
+        '1FINALLY1a2b3c4d5e6f7OHD89Hello World\nFINALLY',
+        'NEW Hello World Complete.',
+    );
     test.end();
 });
 
