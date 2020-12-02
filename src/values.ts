@@ -77,7 +77,8 @@ export abstract class ActiveValue {
         args.forEach((arg, index) => {
             if (arg !== undefined) {
                 const paramDescriptor = descriptor.parameters[index];
-                const param = new VariableValue(paramDescriptor, arg, paramDescriptor.mutable);
+                const param = new VariableValue(paramDescriptor, arg);
+                param.fixAccessModifier();
                 this.procedures[procedureIdx].parameters.push(param);
             }
         });
@@ -137,6 +138,11 @@ export abstract class ActiveValue {
         if (this.activeCode === ActiveCode.Init) {
             this.lastActiveCode = this.activeCode;
             this.activeCode = ActiveCode.Begin;
+            this.variables.forEach((variable) => {
+                if (variable instanceof VariableValue) {
+                    variable.fixAccessModifier();
+                }
+            });
             this.updateActiveSection();
             return;
         }
@@ -379,11 +385,17 @@ export class MessageValue {
 export type VariableValueType = BuiltInValue | ComponentValue;
 
 export class VariableValue {
-    constructor(
-        public readonly descriptor: VariableDescriptor,
-        public value: VariableValueType,
-        public readonly mutable: boolean,
-    ) {}
+    constructor(public readonly descriptor: VariableDescriptor, public value: VariableValueType) {}
+
+    private mutable = true;
+
+    isMutabled(): boolean {
+        return this.mutable;
+    }
+
+    fixAccessModifier(): void {
+        this.mutable = this.descriptor.mutable;
+    }
 }
 
 export type ArrayIndexType = Array<StackValue>;

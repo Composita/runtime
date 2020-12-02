@@ -16,10 +16,14 @@ import { BidirectionalConnection, SystemHandle } from './syscallhandler';
 import {
     ActiveValue,
     ArrayVariableValue,
+    BooleanValue,
+    CharacterValue,
     ComponentValue,
+    FloatValue,
     IntegerValue,
     ProcedureValue,
     ServiceValue,
+    TextValue,
     VariableValue,
     VariableValueType,
 } from './values';
@@ -83,16 +87,16 @@ export class Runtime implements SystemHandle {
             return new IntegerValue();
         }
         if (type instanceof FloatDescriptor) {
-            return new IntegerValue();
+            return new FloatValue();
         }
         if (type instanceof TextDescriptor) {
-            return new IntegerValue();
+            return new TextValue();
         }
         if (type instanceof CharacterDescriptor) {
-            return new IntegerValue();
+            return new CharacterValue();
         }
         if (type instanceof BooleanDescriptor) {
-            return new IntegerValue();
+            return new BooleanValue();
         }
         return undefined;
     }
@@ -103,15 +107,17 @@ export class Runtime implements SystemHandle {
             if (descriptor.indexTypes.length > 0) {
                 component.variables.push(new ArrayVariableValue(descriptor, new Map()));
             } else {
-                component.variables.push(
-                    new VariableValue(descriptor, this.getDefaultVariableValue(descriptor.type), descriptor.mutable),
-                );
+                component.variables.push(new VariableValue(descriptor, this.getDefaultVariableValue(descriptor.type)));
             }
         });
         type.declarations.procedures.forEach((descriptor) =>
             component.procedures.push(new ProcedureValue(descriptor, component)),
         );
-        type.implementations.forEach((descriptor) => component.services.push(new ServiceValue(descriptor, component)));
+        type.implementations.forEach((descriptor) => {
+            const service = new ServiceValue(descriptor, component);
+            this.register(service);
+            component.services.push(service);
+        });
         return component;
     }
 

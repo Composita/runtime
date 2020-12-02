@@ -270,7 +270,7 @@ export class Interpreter {
     }
 
     private handleNewVariable(target: VariableValue, type: ComponentDescriptor | BuiltInTypeDescriptor): void {
-        if (!target.mutable) {
+        if (!target.isMutabled()) {
             throw new Error('Cannot NEW instanciate a constant value.');
         }
         if (type instanceof ComponentDescriptor) {
@@ -297,7 +297,7 @@ export class Interpreter {
     ): void {
         const index = new Array<StackValue>();
         target.descriptor.indexTypes.forEach(() => index.push(Interpreter.tryLoadVariableValue(this.evalStack.pop())));
-        const entry = new VariableValue(target.descriptor, undefined, false);
+        const entry = new VariableValue(target.descriptor, undefined);
         this.handleNewVariable(entry, type);
         target.value.set(index, entry);
     }
@@ -498,6 +498,9 @@ export class Interpreter {
         const value = Interpreter.tryLoadVariableValue(this.evalStack.pop());
         const variable = this.evalStack.pop();
         if (variable instanceof VariableValue) {
+            if (!variable.isMutabled()) {
+                throw new Error('Cannot assign value to a constant.');
+            }
             const varValue = variable.value;
             if (varValue === undefined && (Interpreter.isBuiltInValue(value) || value instanceof ComponentValue)) {
                 variable.value = value;
@@ -544,7 +547,6 @@ export class Interpreter {
 
     private branch(operands: Array<InstructionArgument>): void {
         if (operands.length !== 1) {
-            console.log(operands);
             throw new Error(`Branch conditions must have one operand.`);
         }
         const operand = operands[0];
@@ -578,7 +580,6 @@ export class Interpreter {
         if (nextInstruction === undefined) {
             return;
         }
-        console.log(OperatorCode[nextInstruction.code]);
         switch (nextInstruction.code) {
             case OperatorCode.Add:
                 this.add();

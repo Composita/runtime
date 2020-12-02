@@ -344,3 +344,20 @@ END Expr;`;
     test.equal(outputCapture.getOutput(), '-8', '5 - 3 * 7 + 8 = -8');
     test.end();
 });
+
+tape('Use basic constant.', async (test) => {
+    const code = `COMPONENT { ENTRYPOINT } Expr;
+CONSTANT hello = "Hello";
+BEGIN
+  WRITE(hello)
+END Expr;`;
+    const outputCapture = new OutputCapture();
+    const uri = '';
+    const compiler = new Compiler();
+    const il = await compiler.compile(uri, code);
+    const runtime = new Runtime();
+    runtime.changeOutput(outputCapture.capture.bind(outputCapture));
+    await runtime.execute(il);
+    test.equal(outputCapture.getOutput(), 'Hello', 'Output constant hello');
+    test.end();
+});
