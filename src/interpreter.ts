@@ -13,6 +13,7 @@ import {
     ProcedureDescriptor,
     SystemCallDescriptor,
     TextDescriptor,
+    TypeDescriptor,
     VariableDescriptor,
 } from '@composita/il';
 import { EvaluationStack, StackValue } from './evalstack';
@@ -26,6 +27,7 @@ import {
     ComponentValue,
     FloatValue,
     IntegerValue,
+    MessageValue,
     ServiceValue,
     TextValue,
     VariableValue,
@@ -62,6 +64,16 @@ export class Interpreter {
             value instanceof TextValue ||
             value instanceof CharacterValue ||
             value instanceof BooleanValue
+        );
+    }
+
+    private static descriptorMatchBuiltIn(descriptor: TypeDescriptor, value: StackValue): boolean {
+        return (
+            (descriptor instanceof IntegerDescriptor && value instanceof IntegerValue) ||
+            (descriptor instanceof FloatDescriptor && value instanceof FloatValue) ||
+            (descriptor instanceof CharacterDescriptor && value instanceof CharacterValue) ||
+            (descriptor instanceof TextDescriptor && value instanceof TextValue) ||
+            (descriptor instanceof BooleanDescriptor && value instanceof BooleanValue)
         );
     }
 
@@ -349,7 +361,23 @@ export class Interpreter {
         target.value.delete(index);
     }
 
-    private handleClientSend(operands: Array<InstructionArgument>): void {
+    private loadMessage(descriptor: MessageDescriptor): MessageValue {
+        const message = new MessageValue(descriptor);
+        descriptor.data.forEach((type) => {
+            const wrappedValue = this.evalStack.pop();
+            const value = Interpreter.tryLoadVariableValue(wrappedValue);
+            if (!Interpreter.isBuiltInValue(value)) {
+                throw new Error('Message can only contain built in values: TEXT, CHARACTER INTEGER, REAL, BOOLEAN');
+            }
+            if (!Interpreter.descriptorMatchBuiltIn(type, value)) {
+                throw new Error('Message param does not match stack value');
+            }
+            message.fields.push(value);
+        });
+        return message;
+    }
+
+    private handleSend(operands: Array<InstructionArgument>): void {
         if (operands.length !== 1 || !(operands[0] instanceof MessageDescriptor)) {
             throw new Error('MessageDescritpr required for sending.');
         }
@@ -357,26 +385,14 @@ export class Interpreter {
         if (!(service instanceof ServiceValue)) {
             throw new Error('Expected target service to send to.');
         }
-        // TODO
+        this.loadMessage(operands[0]);
     }
 
-    private handleClientReceive(operands: Array<InstructionArgument>): void {
+    private handleReceive(operands: Array<InstructionArgument>): void {
         if (operands.length !== 1 || !(operands[0] instanceof MessageDescriptor)) {
             throw new Error('MessageDescritpr required for sending.');
         }
         // TODO
-    }
-
-    private handleServerSend(operands: Array<InstructionArgument>): void {
-        if (operands.length !== 1 || !(operands[0] instanceof MessageDescriptor)) {
-            throw new Error('MessageDescritpr required for sending.');
-        }
-    }
-
-    private handleServerReceive(operands: Array<InstructionArgument>): void {
-        if (operands.length !== 1 || !(operands[0] instanceof MessageDescriptor)) {
-            throw new Error('MessageDescritpr required for sending.');
-        }
     }
 
     private handleConnect(operands: Array<InstructionArgument>): void {
@@ -396,13 +412,7 @@ export class Interpreter {
         // TODO anything else?
     }
 
-    private handleClientReceiveCheck(operands: Array<InstructionArgument>): void {
-        if (operands.length !== 1 || !(operands[0] instanceof MessageDescriptor)) {
-            throw new Error('MessageDescritpr required for sending.');
-        }
-    }
-
-    private handleServerReceiveCheck(operands: Array<InstructionArgument>): void {
+    private handleReceiveCheck(operands: Array<InstructionArgument>): void {
         if (operands.length !== 1 || !(operands[0] instanceof MessageDescriptor)) {
             throw new Error('MessageDescritpr required for sending.');
         }
@@ -518,17 +528,42 @@ export class Interpreter {
                 return;
             }
         }
+        if (variable instanceof ArrayVariableValue) {
+            const index = new Array<StackValue>();
+            variable.descriptor.indexTypes.forEach(() =>
+                index.push(Interpreter.tryLoadVariableValue(this.evalStack.pop())),
+            );
+            variable.value.set(index, value);
+            return;
+        }
         throw new Error(`Unsupported Variable Store.`);
     }
 
     private loadVariable(operands: Array<InstructionArgument>): void {
-        if (operands.length === 1 && operands[0] instanceof VariableDescriptor) {
+        if (operands.length !== 1) {
+            throw new Error('Expected single argument for variable load only.');
+        }
+        if (operands[0] instanceof VariableDescriptor) {
             const variable = this.container.variables.find((variable) => variable.descriptor === operands[0]);
             if (variable === undefined) {
                 throw new Error('Unknown variable.');
             }
-            this.evalStack.push(variable);
-            return;
+            if (variable instanceof VariableValue) {
+                this.evalStack.push(variable);
+                return;
+            }
+            if (variable instanceof ArrayVariableValue) {
+                const arrayVariable = this.container.variables.find((variable) => variable.descriptor === operands[0]);
+                if (arrayVariable === undefined) {
+                    throw new Error('Unknown variable.');
+                }
+                const index = new Array<StackValue>();
+                arrayVariable.descriptor.indexTypes.forEach(() =>
+                    index.push(Interpreter.tryLoadVariableValue(this.evalStack.pop())),
+                );
+                this.evalStack.push(variable.value.get(index));
+                return;
+            }
         }
         throw new Error(`Unsupported Variable Load.`);
     }
@@ -543,6 +578,10 @@ export class Interpreter {
             return;
         }
         throw new Error(`Unsupported Variable Load.`);
+    }
+
+    private loadThis(): void {
+        // TODO
     }
 
     private branch(operands: Array<InstructionArgument>): void {
@@ -622,17 +661,11 @@ export class Interpreter {
             case OperatorCode.Delete:
                 this.handleDelete();
                 break;
-            case OperatorCode.ClientSend:
-                this.handleClientSend(nextInstruction.arguments);
+            case OperatorCode.Send:
+                this.handleSend(nextInstruction.arguments);
                 break;
-            case OperatorCode.ClientReceive:
-                this.handleClientReceive(nextInstruction.arguments);
-                break;
-            case OperatorCode.ServerSend:
-                this.handleServerSend(nextInstruction.arguments);
-                break;
-            case OperatorCode.ServerReceive:
-                this.handleServerReceive(nextInstruction.arguments);
+            case OperatorCode.Receive:
+                this.handleReceive(nextInstruction.arguments);
                 break;
             case OperatorCode.Connect:
                 this.handleConnect(nextInstruction.arguments);
@@ -640,17 +673,12 @@ export class Interpreter {
             case OperatorCode.Disconnect:
                 this.handleDisconnect();
                 break;
-            case OperatorCode.ClientReceiveTest:
-                this.handleClientReceiveCheck(nextInstruction.arguments);
-                break;
-            case OperatorCode.ServerReceiveTest:
-                this.handleServerReceiveCheck(nextInstruction.arguments);
+            case OperatorCode.ReceiveTest:
+                this.handleReceiveCheck(nextInstruction.arguments);
                 // TODO !!
                 break;
-            case OperatorCode.ClientInputTest:
+            case OperatorCode.InputTest:
                 throw new Error('Client side INPUT is not yet supportd.');
-            case OperatorCode.ServerInputTest:
-                throw new Error('Server side INPUT is not yet supportd.');
             case OperatorCode.SystemCall:
                 this.handleSystemCall(nextInstruction.arguments);
                 break;
@@ -685,6 +713,9 @@ export class Interpreter {
                 break;
             case OperatorCode.LoadService:
                 this.loadService(nextInstruction.arguments);
+                break;
+            case OperatorCode.LoadThis:
+                this.loadThis();
                 break;
             case OperatorCode.Await:
                 // TODO: Can be ignored for now

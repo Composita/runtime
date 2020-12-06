@@ -104,7 +104,8 @@ export class Runtime implements SystemHandle {
     createComponent(type: ComponentDescriptor, container: Optional<ActiveValue>): ComponentValue {
         const component = new ComponentValue(type, container);
         type.declarations.variables.forEach((descriptor) => {
-            if (descriptor.indexTypes.length > 0) {
+            // TODO this is just a hack for now to keep TextDescriptor behavior and needs to be properly handled.
+            if (descriptor.indexTypes.length > 0 && !(descriptor.type instanceof TextDescriptor)) {
                 component.variables.push(new ArrayVariableValue(descriptor, new Map()));
             } else {
                 component.variables.push(new VariableValue(descriptor, this.getDefaultVariableValue(descriptor.type)));

@@ -406,7 +406,7 @@ enum ArrayVariableValueTag {
 export class ArrayVariableValue {
     constructor(
         public readonly descriptor: VariableDescriptor,
-        public readonly value: Map<ArrayIndexType, VariableValue>,
+        public readonly value: Map<ArrayIndexType, StackValue>,
     ) {}
     protected readonly _arrayVariableTag = ArrayVariableValueTag.Tag;
 }

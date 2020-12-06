@@ -361,3 +361,61 @@ END Expr;`;
     test.equal(outputCapture.getOutput(), 'Hello', 'Output constant hello');
     test.end();
 });
+
+tape('Simple Hello World Messages.', async (test) => {
+    const code = `INTERFACE HelloWorld;
+  { IN Hello(hello: TEXT) OUT World(world: TEXT) }
+END HelloWorld;
+
+COMPONENT CompHelloWorld OFFERS HelloWorld;
+  CONSTANT world = "World"; 
+  VARIABLE input: TEXT;
+  IMPLEMENTATION HelloWorld;
+    BEGIN
+      WHILE ?Hello DO
+        ?Hello(input);
+        WRITE(input); WRITE(" ");
+        !World(world)
+      END
+  END HelloWorld;
+  BEGIN
+    WRITE("Hello World Starting\\n")
+FINALLY
+    WRITE("Goodbye Hello World\\n")
+END CompHelloWorld;
+
+COMPONENT CompSender REQUIRES HelloWorld;
+  VARIABLE world: TEXT; i: INTEGER;
+  BEGIN
+    WRITE("Starting Sender\\n");
+    FOR i := 1 TO 10 DO
+      WRITE("Sending\\n");
+      HelloWorld!Hello("Hello");
+      HelloWorld?World(world);
+      WRITE(world)
+    END
+END CompSender;
+
+COMPONENT { ENTRYPOINT } Connector;
+  VARIABLE helloWorld: CompHelloWorld; sender: CompSender;
+  BEGIN
+    WRITE("STARTING CONNECTOR\\n");
+    NEW(helloWorld);
+    NEW(sender);
+    CONNECT(HelloWorld(helloWorld), sender);
+    DELETE(helloWorld);
+    DELETE(sender)
+END Connector;`;
+    const outputCapture = new OutputCapture();
+    const uri = '';
+    const compiler = new Compiler();
+    const il = await compiler.compile(uri, code);
+    const runtime = new Runtime();
+    runtime.changeOutput(outputCapture.capture.bind(outputCapture));
+    //console.log(il.components[0].implementations[0].begin);
+    // DISABLED for now.
+    il;
+    //await runtime.execute(il);
+    //test.equal(outputCapture.getOutput(), 'Hello', 'Output constant hello');
+    test.end();
+});
