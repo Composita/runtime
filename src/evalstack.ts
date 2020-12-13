@@ -1,6 +1,13 @@
-import { BuiltInValue, ComponentValue, ServiceValue, VariableValues } from './values';
+import {
+    BuiltInValue,
+    ComponentPointer,
+    ProcedurePointer,
+    ServicePointer,
+    VariableValue,
+    VariableValues,
+} from './values';
 
-export type StackValue = ComponentValue | VariableValues | ServiceValue | BuiltInValue;
+export type StackValue = ComponentPointer | ServicePointer | VariableValues | BuiltInValue | ProcedurePointer;
 
 export class EvaluationStack {
     private readonly stack = new Array<StackValue>();
@@ -14,6 +21,11 @@ export class EvaluationStack {
             throw new Error('Undefined value on stack.');
         }
         return value;
+    }
+
+    popVariable(): StackValue {
+        const value = this.pop();
+        return value instanceof VariableValue ? value.value : value;
     }
 
     push(data: StackValue): void {

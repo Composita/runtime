@@ -15,11 +15,6 @@ export class Scheduler {
         return this.activeTask;
     }
 
-    killTask(id: number): void {
-        // TODO probably something more sofisticated.
-        this.readyTasks = this.readyTasks.filter((task) => task.id !== id);
-    }
-
     private scheduleNext(): void {
         if (this.activeTask !== undefined && this.activeTask.getState() !== TaskState.Done) {
             this.readyTasks.push(this.activeTask);

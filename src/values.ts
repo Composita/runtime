@@ -20,13 +20,43 @@ export enum ActiveCode {
     Procedure,
 }
 
-export type DeclarationHolder = ComponentValue | ServiceValue | ProcedureValue;
+//export type DeclarationHolder = ComponentValue | ServiceValue | ProcedureValue;
 export type VariableValues = VariableValue | ArrayVariableValue;
 
+export type PointerValue = ComponentPointer | ServicePointer | ProcedurePointer | RootPointer;
+
+enum ComponentPointerTag {
+    Tag,
+}
+export class ComponentPointer {
+    constructor(public readonly address: number, public readonly type: ComponentDescriptor) {}
+    protected readonly _componentPointerTag = ComponentPointerTag.Tag;
+}
+enum ServicePointerTag {
+    Tag,
+}
+export class ServicePointer {
+    constructor(public readonly address: number, public readonly type: InterfaceDescriptor) {}
+    protected readonly _servicePointerTag = ServicePointerTag.Tag;
+}
+enum ProcedurePointerTag {
+    Tag,
+}
+export class ProcedurePointer {
+    constructor(public readonly address: number, public readonly type: ProcedureDescriptor) {}
+    protected readonly _procedurePointerTag = ProcedurePointerTag.Tag;
+}
+enum RootPointerTag {
+    Tag,
+}
+export class RootPointer {
+    protected readonly _rootPointerTag = RootPointerTag.Tag;
+}
+
 export abstract class ActiveValue {
-    constructor(private readonly declarations: DeclarationDescriptor) {}
+    constructor(private readonly declarations: DeclarationDescriptor, public readonly parent: PointerValue) {}
     public readonly variables = new Array<VariableValues>();
-    public readonly services = new Array<ServiceValue>();
+    //public readonly services = new Array<ServicePointer>();
     public readonly procedures = new Array<ProcedureValue>();
 
     protected abstract fetchNext(): Optional<Instruction>;
@@ -59,7 +89,7 @@ export abstract class ActiveValue {
         this.instructionPointer.set(this.activeCode, newIP);
     }
 
-    call(descriptor: ProcedureDescriptor, args: Array<ComponentValue | BuiltInValue>): boolean {
+    call(descriptor: ProcedureDescriptor, args: Array<ComponentPointer | BuiltInValue>): boolean {
         if (args.length !== descriptor.parameters.length) {
             throw new Error('Procedurecall: Number of parameters do not match.');
         }
@@ -84,16 +114,6 @@ export abstract class ActiveValue {
         });
         return true;
     }
-
-    findService(interfaceDescriptor: InterfaceDescriptor): Optional<ServiceValue> {
-        const service = this.services.find((value) => value.descriptor.reference === interfaceDescriptor);
-        if (service === undefined) {
-            return this.findConnectedService(interfaceDescriptor);
-        }
-        return service;
-    }
-
-    protected abstract findConnectedService(interfaceDescriptor: InterfaceDescriptor): Optional<ServiceValue>;
 
     procedureReturned(): void {
         if (this.activeCode !== ActiveCode.Procedure) {
@@ -218,57 +238,27 @@ export abstract class ActiveValue {
 }
 
 export class ComponentValue extends ActiveValue {
-    constructor(public readonly descriptor: ComponentDescriptor, public readonly parent: Optional<ActiveValue>) {
-        super(descriptor.declarations);
+    constructor(public readonly descriptor: ComponentDescriptor, parent: PointerValue) {
+        super(descriptor.declarations, parent);
+        this.offerConnections = new Map<InterfaceDescriptor, Optional<ServicePointer>>();
+        this.requiredConnections = new Map<InterfaceDescriptor, Optional<ServicePointer>>();
+        descriptor.offers.forEach((offer) => this.offerConnections.set(offer, undefined));
+        descriptor.requires.forEach((require) => this.requiredConnections.set(require, undefined));
     }
 
-    private readonly connectedInterfaces = new Map<InterfaceDescriptor, Array<ServiceValue>>();
-
-    protected findConnectedService(interfaceDescriptor: InterfaceDescriptor): Optional<ServiceValue> {
-        const services = this.connectedInterfaces.get(interfaceDescriptor);
-        if (services === undefined || services.length === 0) {
-            return undefined;
-        }
-        // just return the first serivce for now.
-        return services[0];
-    }
-
-    canConnect(service: ServiceValue): boolean {
-        return this.descriptor.requires.filter((desc) => desc === service.descriptor.reference).length > 0;
-    }
-
-    connect(service: ServiceValue): void {
-        if (!this.canConnect(service)) {
-            throw new Error('Cannot connect service. No interface required by this component.');
-        }
-        const existing = this.connectedInterfaces.get(service.descriptor.reference);
-        existing?.push(service) ?? this.connectedInterfaces.set(service.descriptor.reference, new Array(service));
-    }
-
-    disconnect(service: ServiceValue): void {
-        const existing = this.connectedInterfaces.get(service.descriptor.reference);
-        if (existing !== undefined) {
-            this.connectedInterfaces.set(
-                service.descriptor.reference,
-                existing.filter((value) => value === service),
-            );
-        }
-    }
-
-    // return true only if all required interfaces have been wired up.
-    ready(): boolean {
-        return (
-            this.descriptor.requires.filter((interfaceDescriptor) => !this.connectedInterfaces.has(interfaceDescriptor))
-                .length === 0
-        );
-    }
+    public readonly offerConnections: Map<InterfaceDescriptor, Optional<ServicePointer>>;
+    public readonly requiredConnections: Map<InterfaceDescriptor, Optional<ServicePointer>>;
 
     protected fetchNext(): Optional<Instruction> {
         switch (this.activeCode) {
             case ActiveCode.Begin:
-                return this.descriptor.begin.instructions[this.loadAndAdvanceIP()];
+                return this.loadIP() < this.descriptor.begin.instructions.length
+                    ? this.descriptor.begin.instructions[this.loadAndAdvanceIP()]
+                    : undefined;
             case ActiveCode.Activity:
-                return this.ready() ? this.descriptor.activity.instructions[this.loadAndAdvanceIP()] : undefined;
+                return this.loadIP() < this.descriptor.activity.instructions.length
+                    ? this.descriptor.activity.instructions[this.loadAndAdvanceIP()]
+                    : undefined;
             case ActiveCode.Finally:
                 return this.descriptor.finally.instructions[this.loadAndAdvanceIP()];
             default:
@@ -276,14 +266,41 @@ export class ComponentValue extends ActiveValue {
         }
     }
 
+    /*
+    private requiredConnected(): boolean {
+        let allConnected = true;
+        this.requiredConnections.forEach((connection) => {
+            if (connection === undefined) {
+                allConnected = false;
+            }
+        });
+        return allConnected;
+    }
+
+    private offeredConnected(): boolean {
+        let anyConnected = false;
+        this.offerConnections.forEach((connection) => {
+            if (connection !== undefined) {
+                anyConnected = true;
+            }
+        });
+        return anyConnected;
+    }*/
+
     protected activeCodeDone(): boolean {
         const activeIP = this.loadIP();
         switch (this.activeCode) {
             case ActiveCode.Begin:
-                return activeIP >= this.descriptor.begin.instructions.length;
+                return /* this.requiredConnected() && */ activeIP >= this.descriptor.begin.instructions.length;
             case ActiveCode.Activity:
-                return activeIP >= this.descriptor.activity.instructions.length;
+                return /* !this.offeredConnected() && */ activeIP >= this.descriptor.activity.instructions.length;
             case ActiveCode.Finally:
+                // TODO
+                //{
+                //    if (activeIP >= this.descriptor.finally.instructions.length) {
+                //        this.disconnectAll();
+                //    }
+                //}
                 return activeIP >= this.descriptor.finally.instructions.length;
             default:
                 return true;
@@ -292,24 +309,13 @@ export class ComponentValue extends ActiveValue {
 }
 
 export class ServiceValue extends ActiveValue {
-    constructor(public readonly descriptor: ImplementationDescriptor, public readonly parent: ComponentValue) {
-        super(descriptor.declarations);
+    constructor(public readonly descriptor: ImplementationDescriptor, parent: ComponentPointer) {
+        super(descriptor.declarations, parent);
     }
 
-    private canStart = false;
-
-    protected findConnectedService(): Optional<ServiceValue> {
-        return undefined;
-    }
-
-    start(): void {
-        this.canStart = true;
-    }
+    public readonly messageQueue = new Array<MessageValue>();
 
     protected fetchNext(): Optional<Instruction> {
-        if (!this.canStart) {
-            return undefined;
-        }
         switch (this.activeCode) {
             case ActiveCode.Begin:
                 return this.descriptor.begin.instructions[this.loadAndAdvanceIP()];
@@ -332,8 +338,8 @@ export class ServiceValue extends ActiveValue {
 export type ReturnValue = BuiltInValue | ComponentValue;
 
 export class ProcedureValue extends ActiveValue {
-    constructor(public readonly descriptor: ProcedureDescriptor, public readonly parent: DeclarationHolder) {
-        super(descriptor.declarations);
+    constructor(public readonly descriptor: ProcedureDescriptor, parent: PointerValue) {
+        super(descriptor.declarations, parent);
     }
 
     protected findConnectedService(): Optional<ServiceValue> {
@@ -382,7 +388,7 @@ export class MessageValue {
     public readonly fields = new Array<BuiltInValue>();
 }
 
-export type VariableValueType = BuiltInValue | ComponentValue;
+export type VariableValueType = BuiltInValue | ComponentPointer;
 
 export class VariableValue {
     constructor(public readonly descriptor: VariableDescriptor, public value: VariableValueType) {}

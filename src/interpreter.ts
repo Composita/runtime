@@ -16,35 +16,45 @@ import {
     TypeDescriptor,
     VariableDescriptor,
 } from '@composita/il';
+import { Optional } from '@composita/ts-utility-types';
 import { EvaluationStack, StackValue } from './evalstack';
-import { SyscallInterpreter, SystemHandle } from './syscallhandler';
+import { Runtime } from './runtime';
+import { SyscallInterpreter } from './syscallhandler';
 import {
     ActiveValue,
     ArrayVariableValue,
     BooleanValue,
     BuiltInValue,
     CharacterValue,
+    ComponentPointer,
     ComponentValue,
     FloatValue,
     IntegerValue,
     MessageValue,
-    ServiceValue,
+    PointerValue,
+    ServicePointer,
     TextValue,
     VariableValue,
 } from './values';
+import { default as equal } from 'fast-deep-equal';
 
 export class Interpreter {
-    constructor(private readonly system: SystemHandle, private readonly container: ActiveValue) {}
+    constructor(private readonly system: Runtime, private readonly valuePointer: PointerValue) {}
 
     private evalStack: EvaluationStack = new EvaluationStack();
-    private systemCallHandler = new SyscallInterpreter(this.system);
+    private systemCallHandler = new SyscallInterpreter(this.system, this.evalStack);
 
     isDone(): boolean {
-        return this.container.isDone();
+        return this.loadValue().isDone();
     }
 
-    static tryLoadVariableValue(value: StackValue): StackValue {
-        return value instanceof VariableValue ? value.value : value;
+    private loadValue(): ActiveValue {
+        return this.system.load(this.valuePointer);
+    }
+
+    private loadParentValue(): Optional<ActiveValue> {
+        const current = this.loadValue();
+        return this.system.load(current.parent);
     }
 
     private static isBuiltInTypeDescriptor(descriptor: InstructionArgument): descriptor is BuiltInTypeDescriptor {
@@ -78,8 +88,8 @@ export class Interpreter {
     }
 
     private add(): void {
-        const right = Interpreter.tryLoadVariableValue(this.evalStack.pop());
-        const left = Interpreter.tryLoadVariableValue(this.evalStack.pop());
+        const right = this.evalStack.popVariable();
+        const left = this.evalStack.popVariable();
         if (right instanceof TextValue && left instanceof TextValue) {
             this.evalStack.push(new TextValue(left.value + right.value));
             return;
@@ -96,8 +106,8 @@ export class Interpreter {
     }
 
     private sub(): void {
-        const right = Interpreter.tryLoadVariableValue(this.evalStack.pop());
-        const left = Interpreter.tryLoadVariableValue(this.evalStack.pop());
+        const right = this.evalStack.popVariable();
+        const left = this.evalStack.popVariable();
         if (right instanceof FloatValue && left instanceof FloatValue) {
             this.evalStack.push(new FloatValue(left.value - right.value));
             return;
@@ -110,8 +120,8 @@ export class Interpreter {
     }
 
     private mul(): void {
-        const right = Interpreter.tryLoadVariableValue(this.evalStack.pop());
-        const left = Interpreter.tryLoadVariableValue(this.evalStack.pop());
+        const right = this.evalStack.popVariable();
+        const left = this.evalStack.popVariable();
         if (right instanceof FloatValue && left instanceof FloatValue) {
             this.evalStack.push(new FloatValue(left.value * right.value));
             return;
@@ -124,8 +134,8 @@ export class Interpreter {
     }
 
     private div(): void {
-        const right = Interpreter.tryLoadVariableValue(this.evalStack.pop());
-        const left = Interpreter.tryLoadVariableValue(this.evalStack.pop());
+        const right = this.evalStack.popVariable();
+        const left = this.evalStack.popVariable();
         if (right instanceof FloatValue && left instanceof FloatValue) {
             this.evalStack.push(new FloatValue(left.value / right.value));
             return;
@@ -138,7 +148,7 @@ export class Interpreter {
     }
 
     private negate(): void {
-        const right = Interpreter.tryLoadVariableValue(this.evalStack.pop());
+        const right = this.evalStack.popVariable();
         if (right instanceof FloatValue) {
             this.evalStack.push(new FloatValue(-right.value));
             return;
@@ -151,8 +161,8 @@ export class Interpreter {
     }
 
     private mod(): void {
-        const right = Interpreter.tryLoadVariableValue(this.evalStack.pop());
-        const left = Interpreter.tryLoadVariableValue(this.evalStack.pop());
+        const right = this.evalStack.popVariable();
+        const left = this.evalStack.popVariable();
         if (right instanceof FloatValue && left instanceof FloatValue) {
             this.evalStack.push(new FloatValue(left.value % right.value));
             return;
@@ -169,8 +179,6 @@ export class Interpreter {
         right: StackValue,
         fn: (left: number | string, right: number | string) => boolean,
     ): void {
-        left = Interpreter.tryLoadVariableValue(left) ?? left;
-        right = Interpreter.tryLoadVariableValue(right) ?? right;
         if (left instanceof IntegerValue && right instanceof IntegerValue) {
             this.evalStack.push(new BooleanValue(fn(left.value, right.value)));
             return;
@@ -195,8 +203,6 @@ export class Interpreter {
         right: StackValue,
         fn: (left: number | boolean | string, right: number | boolean | string) => boolean,
     ): void {
-        left = Interpreter.tryLoadVariableValue(left) ?? left;
-        right = Interpreter.tryLoadVariableValue(right) ?? right;
         if (left instanceof BooleanValue && right instanceof BooleanValue) {
             this.evalStack.push(new BooleanValue(fn(left.value, right.value)));
             return;
@@ -221,11 +227,11 @@ export class Interpreter {
     }
 
     private handleCompareOp(op: OperatorCode): void {
-        const right = Interpreter.tryLoadVariableValue(this.evalStack.pop());
+        const right = this.evalStack.popVariable();
         if (right === undefined) {
             throw new Error(`Unknown right compare argument.`);
         }
-        const left = Interpreter.tryLoadVariableValue(this.evalStack.pop());
+        const left = this.evalStack.popVariable();
         if (left === undefined) {
             throw new Error(`Unknown left compare argument.`);
         }
@@ -253,7 +259,7 @@ export class Interpreter {
     }
 
     private not(): void {
-        const right = Interpreter.tryLoadVariableValue(this.evalStack.pop());
+        const right = this.evalStack.popVariable();
         if (right instanceof BooleanValue) {
             this.evalStack.push(new BooleanValue(!right.value));
             return;
@@ -262,8 +268,8 @@ export class Interpreter {
     }
 
     private or(): void {
-        const right = Interpreter.tryLoadVariableValue(this.evalStack.pop());
-        const left = Interpreter.tryLoadVariableValue(this.evalStack.pop());
+        const right = this.evalStack.popVariable();
+        const left = this.evalStack.popVariable();
         if (right instanceof BooleanValue && left instanceof BooleanValue) {
             this.evalStack.push(new BooleanValue(left.value || right.value));
             return;
@@ -272,8 +278,8 @@ export class Interpreter {
     }
 
     private and(): void {
-        const right = Interpreter.tryLoadVariableValue(this.evalStack.pop());
-        const left = Interpreter.tryLoadVariableValue(this.evalStack.pop());
+        const right = this.evalStack.popVariable();
+        const left = this.evalStack.popVariable();
         if (right instanceof BooleanValue && left instanceof BooleanValue) {
             this.evalStack.push(new BooleanValue(left.value && right.value));
             return;
@@ -289,9 +295,8 @@ export class Interpreter {
             if (target.value instanceof ComponentValue) {
                 target.value.finalize();
             }
-            const component = this.system.createComponent(type, this.container);
+            const component = this.system.createComponent(type, this.valuePointer);
             target.value = component;
-            this.system.register(component);
             return;
         }
 
@@ -308,7 +313,7 @@ export class Interpreter {
         type: ComponentDescriptor | BuiltInTypeDescriptor,
     ): void {
         const index = new Array<StackValue>();
-        target.descriptor.indexTypes.forEach(() => index.push(Interpreter.tryLoadVariableValue(this.evalStack.pop())));
+        target.descriptor.indexTypes.forEach(() => index.push(this.evalStack.popVariable()));
         const entry = new VariableValue(target.descriptor, undefined);
         this.handleNewVariable(entry, type);
         target.value.set(index, entry);
@@ -352,7 +357,7 @@ export class Interpreter {
             return;
         }
         const index = new Array<StackValue>();
-        target.descriptor.indexTypes.forEach(() => index.push(Interpreter.tryLoadVariableValue(this.evalStack.pop())));
+        target.descriptor.indexTypes.forEach(() => index.push(this.evalStack.popVariable()));
         const toDelete = target.value.get(index);
         if (toDelete instanceof ComponentValue) {
             toDelete.finalize();
@@ -364,8 +369,7 @@ export class Interpreter {
     private loadMessage(descriptor: MessageDescriptor): MessageValue {
         const message = new MessageValue(descriptor);
         descriptor.data.forEach((type) => {
-            const wrappedValue = this.evalStack.pop();
-            const value = Interpreter.tryLoadVariableValue(wrappedValue);
+            const value = this.evalStack.popVariable();
             if (!Interpreter.isBuiltInValue(value)) {
                 throw new Error('Message can only contain built in values: TEXT, CHARACTER INTEGER, REAL, BOOLEAN');
             }
@@ -379,68 +383,124 @@ export class Interpreter {
 
     private handleSend(operands: Array<InstructionArgument>): void {
         if (operands.length !== 1 || !(operands[0] instanceof MessageDescriptor)) {
-            throw new Error('MessageDescritpr required for sending.');
+            throw new Error('MessageDescriptor required for sending.');
         }
         const service = this.evalStack.pop();
-        if (!(service instanceof ServiceValue)) {
+        if (!(service instanceof ServicePointer)) {
             throw new Error('Expected target service to send to.');
         }
-        this.loadMessage(operands[0]);
+        const message = this.loadMessage(operands[0]);
+        this.system.send(service, message);
     }
+
+    private wait: Optional<() => boolean> = undefined;
 
     private handleReceive(operands: Array<InstructionArgument>): void {
         if (operands.length !== 1 || !(operands[0] instanceof MessageDescriptor)) {
-            throw new Error('MessageDescritpr required for sending.');
+            throw new Error('MessageDescriptor required for receiving.');
         }
-        // TODO
+        const descriptor = operands[0];
+        const target = this.evalStack.popVariable();
+        if (!(target instanceof ServicePointer)) {
+            throw new Error('Receiver must be a service.');
+        }
+        this.wait = () => {
+            const message = this.system.receive(target, descriptor);
+            if (message === Runtime.finishMessage) {
+                return false;
+            }
+            if (message !== undefined) {
+                message.fields.forEach((element) => {
+                    this.evalStack.push(element);
+                    this.storeVariable();
+                });
+                return false;
+            }
+            return true;
+        };
+        if (!this.wait()) {
+            this.wait = undefined;
+        }
     }
 
-    private handleConnect(operands: Array<InstructionArgument>): void {
-        if (operands.length !== 1 || !(operands[0] instanceof MessageDescriptor)) {
-            throw new Error('MessageDescritpr required for sending.');
+    private handleConnect(): void {
+        const to = this.evalStack.popVariable();
+        if (!(to instanceof ComponentPointer)) {
+            // TODO: check if service pointer is possible here as well. Keeping it to components for now.
+            throw new Error('Connect target needs to be either a component.');
         }
+        const service = this.evalStack.pop();
+        if (!(service instanceof ServicePointer)) {
+            throw new Error('Service required for from.');
+        }
+        //const from = this.evalStack.popVariable();
+        //if (!(from instanceof ComponentPointer)) {
+        //    throw new Error('Connect requires a component.');
+        //}
+        this.system.connect(to, service);
     }
 
     private handleDisconnect(): void {
-        const target = this.evalStack.pop();
-        if (!(target instanceof ServiceValue)) {
-            throw new Error('Cannot disconnect unknown service.');
+        const target = this.evalStack.popVariable();
+        if (!(target instanceof ComponentPointer)) {
+            throw new Error('Need to know from component.');
         }
-        if (this.container instanceof ComponentValue) {
-            this.container.disconnect(target);
+        const service = this.evalStack.pop();
+        if (!(service instanceof ServicePointer)) {
+            throw new Error('Service required for disconnecting.');
         }
-        // TODO anything else?
+        this.system.disconnect(target, service);
+        // TODO
     }
 
     private handleReceiveCheck(operands: Array<InstructionArgument>): void {
         if (operands.length !== 1 || !(operands[0] instanceof MessageDescriptor)) {
-            throw new Error('MessageDescritpr required for sending.');
+            throw new Error('MessageDescriptor required for receiving.');
         }
+        const descriptor = operands[0];
+        const target = this.evalStack.popVariable();
+        if (!(target instanceof ServicePointer)) {
+            throw new Error('Receiver must be a component or service.');
+        }
+        this.wait = () => {
+            const message = this.system.receiveTest(target);
+            if (message === undefined) {
+                return true;
+            }
+            if (equal(message.descriptor, descriptor)) {
+                this.evalStack.push(new BooleanValue(true));
+                return false;
+            }
+            this.evalStack.push(new BooleanValue(false));
+            return false;
+        };
+        if (!this.wait()) {
+            this.wait = undefined;
+        }
+    }
+
+    private handleInputCheck(operands: Array<InstructionArgument>): void {
+        if (operands.length !== 1 || !(operands[0] instanceof MessageDescriptor)) {
+            throw new Error('MessageDescriptor required for receiving.');
+        }
+        const descriptor = operands[0];
+        const target = this.evalStack.popVariable();
+        if (!(target instanceof ServicePointer)) {
+            throw new Error('Receiver must be a component or service.');
+        }
+        const message = this.system.receiveTest(target);
+        if (message !== undefined && equal(message.descriptor, descriptor)) {
+            this.evalStack.push(new BooleanValue(true));
+            return;
+        }
+        this.evalStack.push(new BooleanValue(false));
     }
 
     private handleSystemCall(operands: Array<InstructionArgument>): void {
         if (operands.length !== 1 || !(operands[0] instanceof SystemCallDescriptor)) {
             throw new Error('Invalid system call.');
         }
-        const call = operands[0];
-        if (call.arguments.length !== 1) {
-            throw new Error(
-                'SystemCall requires the number of arguments to be passed. Something must have failed during code gen.',
-            );
-        }
-        if (!(call.arguments[0] instanceof IntegerDescriptor)) {
-            throw new Error(
-                'SystemCall expects to be passed an IntegerDescriptor argument. Something must have failed during code gen.',
-            );
-        }
-        const stackArgs = new Array<StackValue>();
-        for (let i = 0; i < call.arguments[0].initialValue; ++i) {
-            stackArgs.push(this.evalStack.pop());
-        }
-        const returnValue = this.systemCallHandler.handle(call.systemCall, stackArgs);
-        if (returnValue !== undefined) {
-            this.evalStack.push(returnValue);
-        }
+        this.systemCallHandler.handle(operands[0]);
     }
 
     private handleProcedurecall(operands: Array<InstructionArgument>): void {
@@ -448,20 +508,20 @@ export class Interpreter {
             throw new Error('Invalid procedure call.');
         }
         // TODO should we support out variables?
-        const args = new Array<ComponentValue | BuiltInValue>();
+        const args = new Array<ComponentPointer | BuiltInValue>();
         operands[0].parameters.forEach(() => {
-            const value = Interpreter.tryLoadVariableValue(this.evalStack.pop());
-            if (value instanceof ComponentValue || Interpreter.isBuiltInValue(value)) {
+            const value = this.evalStack.popVariable();
+            if (value instanceof ComponentPointer || Interpreter.isBuiltInValue(value)) {
                 args.push(value);
                 return;
             }
             throw new Error('Failed to pass value to procedure.');
         });
-        this.container.call(operands[0], args);
+        this.loadValue().call(operands[0], args);
     }
 
     private handleReturn(): void {
-        this.container.procedureReturned();
+        this.loadValue().procedureReturned();
     }
 
     private loadBoolean(operands: Array<InstructionArgument>): void {
@@ -505,14 +565,14 @@ export class Interpreter {
     }
 
     private storeVariable(): void {
-        const value = Interpreter.tryLoadVariableValue(this.evalStack.pop());
+        const value = this.evalStack.popVariable();
         const variable = this.evalStack.pop();
         if (variable instanceof VariableValue) {
             if (!variable.isMutabled()) {
                 throw new Error('Cannot assign value to a constant.');
             }
             const varValue = variable.value;
-            if (varValue === undefined && (Interpreter.isBuiltInValue(value) || value instanceof ComponentValue)) {
+            if (varValue === undefined && (Interpreter.isBuiltInValue(value) || value instanceof ComponentPointer)) {
                 variable.value = value;
                 return;
             }
@@ -522,7 +582,7 @@ export class Interpreter {
                 (value instanceof BooleanValue && varValue instanceof BooleanValue) ||
                 (value instanceof CharacterValue && varValue instanceof CharacterValue) ||
                 (value instanceof TextValue && varValue instanceof TextValue) ||
-                (value instanceof ComponentValue && varValue instanceof ComponentValue)
+                (value instanceof ComponentPointer && varValue instanceof ComponentPointer)
             ) {
                 variable.value = value;
                 return;
@@ -530,9 +590,7 @@ export class Interpreter {
         }
         if (variable instanceof ArrayVariableValue) {
             const index = new Array<StackValue>();
-            variable.descriptor.indexTypes.forEach(() =>
-                index.push(Interpreter.tryLoadVariableValue(this.evalStack.pop())),
-            );
+            variable.descriptor.indexTypes.forEach(() => index.push(this.evalStack.popVariable()));
             variable.value.set(index, value);
             return;
         }
@@ -544,23 +602,30 @@ export class Interpreter {
             throw new Error('Expected single argument for variable load only.');
         }
         if (operands[0] instanceof VariableDescriptor) {
-            const variable = this.container.variables.find((variable) => variable.descriptor === operands[0]);
+            let variable = this.loadValue().variables.find((variable) => variable.descriptor === operands[0]);
             if (variable === undefined) {
-                throw new Error('Unknown variable.');
+                if (this.valuePointer instanceof ServicePointer) {
+                    variable = this.loadParentValue()?.variables.find((parentVal) =>
+                        equal(parentVal.descriptor, operands[0]),
+                    );
+                }
+                if (variable === undefined) {
+                    throw new Error('Unknown variable.');
+                }
             }
             if (variable instanceof VariableValue) {
                 this.evalStack.push(variable);
                 return;
             }
             if (variable instanceof ArrayVariableValue) {
-                const arrayVariable = this.container.variables.find((variable) => variable.descriptor === operands[0]);
+                const arrayVariable = this.loadValue().variables.find((loadedVar) =>
+                    equal(loadedVar.descriptor, operands[0]),
+                );
                 if (arrayVariable === undefined) {
-                    throw new Error('Unknown variable.');
+                    throw new Error('Unknown array variable.');
                 }
                 const index = new Array<StackValue>();
-                arrayVariable.descriptor.indexTypes.forEach(() =>
-                    index.push(Interpreter.tryLoadVariableValue(this.evalStack.pop())),
-                );
+                arrayVariable.descriptor.indexTypes.forEach(() => index.push(this.evalStack.popVariable()));
                 this.evalStack.push(variable.value.get(index));
                 return;
             }
@@ -570,18 +635,22 @@ export class Interpreter {
 
     private loadService(operands: Array<InstructionArgument>): void {
         if (operands.length === 1 && operands[0] instanceof InterfaceDescriptor) {
-            const service = this.container.findService(operands[0]);
-            if (service === undefined) {
-                throw new Error('Unknown service.');
+            const pointer = this.evalStack.popVariable();
+            if (pointer instanceof ComponentPointer) {
+                const service = this.system.getService(operands[0], pointer);
+                this.evalStack.push(service);
+                return;
             }
-            this.evalStack.push(service);
-            return;
         }
-        throw new Error(`Unsupported Variable Load.`);
+        throw new Error(`Unsupported Service Load.`);
     }
 
     private loadThis(): void {
-        // TODO
+        if (this.valuePointer instanceof ServicePointer || this.valuePointer instanceof ComponentPointer) {
+            this.evalStack.push(this.valuePointer);
+            return;
+        }
+        throw new Error('Load this only for services supported.');
     }
 
     private branch(operands: Array<InstructionArgument>): void {
@@ -590,7 +659,7 @@ export class Interpreter {
         }
         const operand = operands[0];
         if (operand instanceof JumpDescriptor) {
-            this.container.jump(operand);
+            this.loadValue().jump(operand);
             return;
         }
         throw new Error(`Failed jump.`);
@@ -612,10 +681,16 @@ export class Interpreter {
     }
 
     processNext(): void {
-        if (this.container.isDone()) {
+        if (this.loadValue().isDone()) {
             return;
         }
-        const nextInstruction = this.container.fetch();
+        if (this.wait !== undefined) {
+            if (this.wait()) {
+                return;
+            }
+            this.wait = undefined;
+        }
+        const nextInstruction = this.loadValue().fetch();
         if (nextInstruction === undefined) {
             return;
         }
@@ -668,17 +743,17 @@ export class Interpreter {
                 this.handleReceive(nextInstruction.arguments);
                 break;
             case OperatorCode.Connect:
-                this.handleConnect(nextInstruction.arguments);
+                this.handleConnect();
                 break;
             case OperatorCode.Disconnect:
                 this.handleDisconnect();
                 break;
             case OperatorCode.ReceiveTest:
                 this.handleReceiveCheck(nextInstruction.arguments);
-                // TODO !!
                 break;
             case OperatorCode.InputTest:
-                throw new Error('Client side INPUT is not yet supportd.');
+                this.handleInputCheck(nextInstruction.arguments);
+                break;
             case OperatorCode.SystemCall:
                 this.handleSystemCall(nextInstruction.arguments);
                 break;

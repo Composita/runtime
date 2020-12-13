@@ -1,12 +1,5 @@
-import { Instruction } from '@composita/il';
-import { Optional } from '@composita/ts-utility-types';
 import { Interpreter } from './interpreter';
-
-export interface Processor {
-    load(...code: Array<Instruction>): void;
-    processNext(): Promise<void>;
-    isDone(): boolean;
-}
+import { PointerValue } from './values';
 
 export enum TaskState {
     Ready,
@@ -15,24 +8,8 @@ export enum TaskState {
     Done,
 }
 
-export class Mailbox<T> {
-    private data: Optional<T>;
-
-    post(data: T): void {
-        this.data = data;
-    }
-
-    receive(): Optional<T> {
-        return this.data;
-    }
-
-    check(): boolean {
-        return this.data !== undefined;
-    }
-}
-
 export class Task {
-    constructor(public readonly id: number, protected interpreter: Interpreter) {}
+    constructor(public readonly value: PointerValue, protected interpreter: Interpreter) {}
 
     private state = TaskState.Ready;
 
