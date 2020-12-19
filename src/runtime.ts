@@ -51,7 +51,7 @@ export class Runtime {
     private out: (...msgs: Array<string>) => void = (...msgs: Array<string>) =>
         msgs.forEach((msg) => process.stdout.write(msg));
 
-    reset(): void {
+    halt(): void {
         this.stop = true;
     }
 
@@ -67,22 +67,15 @@ export class Runtime {
         this.isRunning = fn;
     }
 
-    private currentIl: Optional<IL> = undefined;
-
-    async execute(il: IL): Promise<void> {
+    async run(il: IL): Promise<void> {
         this.stop = false;
-        this.currentIl = il;
-        this.run();
-    }
-
-    run(): void {
         this.isRunning(true);
-        this.currentIl?.entryPoints.forEach((descriptor) => {
+        il.entryPoints.forEach((descriptor) => {
             this.createComponent(descriptor, new RootPointer());
         });
         let task = this.scheduler.getActiveTask();
         while (task !== undefined && !this.stop) {
-            task.execute();
+            await task.execute();
             task = this.scheduler.getActiveTask();
         }
         this.isRunning(false);

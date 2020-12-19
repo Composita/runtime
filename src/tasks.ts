@@ -13,7 +13,7 @@ export class Task {
 
     private state = TaskState.Ready;
 
-    execute(): void {
+    async execute(): Promise<void> {
         if (this.isDone() || this.interpreter.isDone()) {
             this.state = TaskState.Done;
             return;
