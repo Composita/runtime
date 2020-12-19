@@ -73,12 +73,38 @@ export class Runtime {
         il.entryPoints.forEach((descriptor) => {
             this.createComponent(descriptor, new RootPointer());
         });
-        let task = this.scheduler.getActiveTask();
+        let task = this.scheduler.getNextTask();
         while (task !== undefined && !this.stop) {
             await task.execute();
-            task = this.scheduler.getActiveTask();
+            task = this.scheduler.getNextTask();
         }
         this.isRunning(false);
+    }
+
+    private exclusiveLock: Optional<number> = undefined;
+    static holderId = 0;
+
+    acquireExclusive(oldId: Optional<number>): Optional<number> {
+        if (this.exclusiveLock === oldId && oldId !== undefined) {
+            return oldId;
+        }
+        if (this.exclusiveLock !== undefined) {
+            return undefined;
+        }
+        this.exclusiveLock = Runtime.holderId;
+        Runtime.holderId++;
+        return this.exclusiveLock;
+    }
+
+    releaseExclusive(id: Optional<number>): boolean {
+        if (this.exclusiveLock !== undefined && id === undefined) {
+            return false;
+        }
+        if (this.exclusiveLock !== id) {
+            return false;
+        }
+        this.exclusiveLock = undefined;
+        return true;
     }
 
     print(...msgs: Array<string>): void {

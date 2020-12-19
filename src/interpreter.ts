@@ -653,6 +653,35 @@ export class Interpreter {
         throw new Error('Load this only for services supported.');
     }
 
+    private lock: Optional<number> = undefined;
+
+    private handleAcquireExclusive(): void {
+        this.wait = () => {
+            const newLock = this.system.acquireExclusive(this.lock);
+            if (newLock === undefined) {
+                return true;
+            }
+            this.lock = newLock;
+            return false;
+        };
+        if (!this.wait()) {
+            this.wait = undefined;
+        }
+    }
+
+    private handleReleaseExclusive(): void {
+        this.wait = () => {
+            const success = this.system.releaseExclusive(this.lock);
+            if (success) {
+                this.lock = undefined;
+            }
+            return !success;
+        };
+        if (!this.wait()) {
+            this.wait = undefined;
+        }
+    }
+
     private branch(operands: Array<InstructionArgument>): void {
         if (operands.length !== 1) {
             throw new Error(`Branch conditions must have one operand.`);
@@ -805,12 +834,10 @@ export class Interpreter {
                 console.warn('Release SHARED ignored.');
                 break;
             case OperatorCode.AcquireExclusive:
-                // TODO: Can be ignored for now
-                console.warn('Acquire EXCLUSIVE ignored.');
+                this.handleAcquireExclusive();
                 break;
             case OperatorCode.ReleaseExclusive:
-                // TODO: Can be ignored for now
-                console.warn('Release EXCLUSIVE ignored.');
+                this.handleReleaseExclusive();
                 break;
             case OperatorCode.Branch:
                 this.branch(nextInstruction.arguments);

@@ -9,9 +9,13 @@ export class Scheduler {
         this.readyTasks.push(task);
     }
 
-    getActiveTask(): Optional<Task> {
+    getNextTask(): Optional<Task> {
         // simple scheduling, just loop through all the tasks.
         this.scheduleNext();
+        return this.activeTask;
+    }
+
+    getActiveTask(): Optional<Task> {
         return this.activeTask;
     }
 
