@@ -193,6 +193,10 @@ export class SyscallInterpreter {
                     this.evalStack.push(new IntegerValue(Math.trunc(value.value)));
                     return;
                 }
+                if (value instanceof CharacterValue) {
+                    this.evalStack.push(new IntegerValue(Number.parseInt(value.value)));
+                    return;
+                }
                 break;
             case SystemCallOperator.ToReal:
                 value = SyscallInterpreter.toValue(value);

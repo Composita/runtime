@@ -23,26 +23,26 @@
     chalk "^2.0.0"
     js-tokens "^4.0.0"
 
-"@composita/compiler@^0.4.2":
-  version "0.4.2"
-  resolved "https://registry.yarnpkg.com/@composita/compiler/-/compiler-0.4.2.tgz#afac6c573d02b88a629a931d4c8796e4869662b4"
-  integrity sha512-fcqtjWZiPtJ+gbROV1tk8k4I3gXMQBRb8eldZnbzfgLKzsVD+HMD25XtB48ZLQFuoW8LLP8mCw3Ia+jTsLTyyA==
+"@composita/compiler@^0.4.3":
+  version "0.4.3"
+  resolved "https://registry.yarnpkg.com/@composita/compiler/-/compiler-0.4.3.tgz#a312b08a34b09beba7a0cb021ab45052c040449b"
+  integrity sha512-XwWrf06vEuNZunNooNYuFIxbFvJ/8iaSxzq+7rxi1ILWlRVFDSpz/o4vZoLO69IPTwo2Y2TBUupCypbyH5n6nQ==
   dependencies:
-    "@composita/il" "^0.3.13"
-    "@composita/ts-utility-types" "^0.2.0"
+    "@composita/il" "^0.4.0"
+    "@composita/ts-utility-types" "^0.3.0"
     vscode-languageserver-types "^3.16.0"
 
-"@composita/il@^0.3.13":
-  version "0.3.13"
-  resolved "https://registry.yarnpkg.com/@composita/il/-/il-0.3.13.tgz#54dba7f8a3a6da40127005bf46ff1c31b829934d"
-  integrity sha512-zLgaliYURsWj6HJULihyC9caQ2D/iycpkbxwLbN7uWlviSgWXmy43pa0nL9KPKy0QOZN3ZyBQ9INDSL54fWa3g==
+"@composita/il@^0.4.0":
+  version "0.4.0"
+  resolved "https://registry.yarnpkg.com/@composita/il/-/il-0.4.0.tgz#fd29ea0aa3bf52ef3b3f668ed36b861543119f09"
+  integrity sha512-+3Y9TehaNgEt3Z/seULDL0HQGREUnBeGNtbFOx0P+oGhN6VeaBMQITVBMlQa8S3cusXA8k7kRu6cR5Cktl8hMw==
   dependencies:
-    "@composita/ts-utility-types" "^0.2.0"
+    "@composita/ts-utility-types" "^0.3.0"
 
-"@composita/ts-utility-types@^0.2.0":
-  version "0.2.0"
-  resolved "https://registry.yarnpkg.com/@composita/ts-utility-types/-/ts-utility-types-0.2.0.tgz#3d9e900e8b229c7921636ca424b11c4b03523241"
-  integrity sha512-HMwqhqRXJhIcidLkW7TK8zqjClW2nWdYncBer9Xn1JxMIpqMGr8Sq1LT47RIbS8n3O8zbwwhEeFTuu3R56jh1A==
+"@composita/ts-utility-types@^0.3.0":
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/@composita/ts-utility-types/-/ts-utility-types-0.3.0.tgz#62b08502fb5a1b5e78258461d9693d852b691a33"
+  integrity sha512-JcTTb6IOtwcJOpdhDZ5tqX1VHEEpA+YigtNF4QSPFEG4Ef9MD0ro5bJ8DL2+Nw6/phNpxATMwcpRx46AqXrz2w==
 
 "@eslint/eslintrc@^0.2.2":
   version "0.2.2"
