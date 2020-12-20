@@ -306,7 +306,7 @@ export class Interpreter {
             return;
         }
 
-        throw new Error('NEW built in variable not yet supported.');
+        console.warn('Composite Runtime: NEW call ignored for built-in variable type.');
     }
 
     private handleNew(operands: Array<InstructionArgument>): void {
@@ -824,11 +824,11 @@ export class Interpreter {
                 break;
             case OperationCode.AcquireShared:
                 // TODO: Can be ignored for now
-                console.warn('Acquire SHARED ignored.');
+                console.warn('Composite Runtime: Acquire SHARED ignored.');
                 break;
             case OperationCode.ReleaseShared:
                 // TODO: Can be ignored for now
-                console.warn('Release SHARED ignored.');
+                console.warn('Composite Runtime: Release SHARED ignored.');
                 break;
             case OperationCode.AcquireExclusive:
                 this.handleAcquireExclusive();
@@ -848,7 +848,7 @@ export class Interpreter {
             case OperationCode.IsType:
                 throw new Error('IS typecheck is not yet supported.');
             case OperationCode.ExistsTest:
-                throw new Error('EXISTSW check is not yet supported.');
+                throw new Error('EXISTS test is not yet supported.');
         }
     }
 }
