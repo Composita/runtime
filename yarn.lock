@@ -23,10 +23,10 @@
     chalk "^2.0.0"
     js-tokens "^4.0.0"
 
-"@composita/compiler@^0.4.3":
-  version "0.4.3"
-  resolved "https://registry.yarnpkg.com/@composita/compiler/-/compiler-0.4.3.tgz#a312b08a34b09beba7a0cb021ab45052c040449b"
-  integrity sha512-XwWrf06vEuNZunNooNYuFIxbFvJ/8iaSxzq+7rxi1ILWlRVFDSpz/o4vZoLO69IPTwo2Y2TBUupCypbyH5n6nQ==
+"@composita/compiler@^0.4.5":
+  version "0.4.5"
+  resolved "https://registry.yarnpkg.com/@composita/compiler/-/compiler-0.4.5.tgz#2eea4c0678ae150b254e24897724b01a7b1847f2"
+  integrity sha512-cEzdW9HWb848+21QsAHxK1pzpECQAJmp49oQ3KF9x9OfUohtffB3xIQxevpmJ+0SCQQM+4Qn2DcuwY/pq53nXg==
   dependencies:
     "@composita/il" "^0.4.0"
     "@composita/ts-utility-types" "^0.3.0"

@@ -3,11 +3,14 @@ import {
     BooleanDescriptor,
     CharacterDescriptor,
     ComponentDescriptor,
+    DeclarationDescriptor,
     FloatDescriptor,
     IL,
+    ImplementationDescriptor,
     IntegerDescriptor,
     InterfaceDescriptor,
     MessageDescriptor,
+    ProcedureDescriptor,
     TextDescriptor,
     TypeDescriptor,
 } from '@composita/il';
@@ -152,21 +155,7 @@ export class Runtime {
         this.objectDependency.set(pointer, container);
         this.memory.set(pointer, component);
         this.registerTask(pointer);
-        type.declarations.variables.forEach((descriptor) => {
-            // TODO this is just a hack for now to keep TextDescriptor behavior and needs to be properly handled.
-            if (descriptor.indexTypes.length > 0 && !(descriptor.type instanceof TextDescriptor)) {
-                component.variables.push(new ArrayVariableValue(descriptor, new Map()));
-            } else {
-                component.variables.push(new VariableValue(descriptor, this.getDefaultVariableValue(descriptor.type)));
-            }
-        });
-        type.declarations.procedures.forEach((descriptor) => {
-            const procedure = new ProcedureValue(descriptor, pointer);
-            const procedurePointer = new ProcedurePointer(this.nextTaskId++, descriptor);
-            this.memory.set(procedurePointer, procedure);
-            this.objectDependency.set(procedurePointer, pointer);
-            component.procedures.push(procedure);
-        });
+        this.prepareDeclarations(type.declarations, component, pointer);
         type.offers.forEach((offer) => {
             if (!this.interfaceToService.has(offer)) {
                 this.interfaceToService.set(offer, new Map());
@@ -334,11 +323,40 @@ export class Runtime {
             from.offerConnections.set(service.type, service);
         }
         if (!this.memory.has(service)) {
-            const serviceValue = new ServiceValue(impl, this.serviceToImpl.get(service) as ComponentPointer);
+            const serviceValue = this.createService(impl, service);
             this.memory.set(service, serviceValue);
         }
         this.registerTask(service);
-        // TODO
+    }
+
+    private createService(type: ImplementationDescriptor, pointer: ServicePointer): ServiceValue {
+        const service = new ServiceValue(type, this.serviceToImpl.get(pointer) as ComponentPointer);
+        this.prepareDeclarations(type.declarations, service, pointer);
+        return service;
+    }
+
+    private createProcedure(type: ProcedureDescriptor, pointer: PointerValue): ProcedureValue {
+        const procedure = new ProcedureValue(type, pointer);
+        this.prepareDeclarations(type.declarations, procedure, pointer);
+        return procedure;
+    }
+
+    private prepareDeclarations(type: DeclarationDescriptor, value: ActiveValue, pointer: PointerValue): void {
+        type.variables.forEach((descriptor) => {
+            // TODO this is just a hack for now to keep TextDescriptor behavior and needs to be properly handled.
+            if (descriptor.indexTypes.length > 0 && !(descriptor.type instanceof TextDescriptor)) {
+                value.variables.push(new ArrayVariableValue(descriptor, new Map()));
+            } else {
+                value.variables.push(new VariableValue(descriptor, this.getDefaultVariableValue(descriptor.type)));
+            }
+        });
+        type.procedures.forEach((descriptor) => {
+            const procedurePointer = new ProcedurePointer(this.nextTaskId++, descriptor);
+            const procedure = this.createProcedure(descriptor, pointer);
+            this.memory.set(procedurePointer, procedure);
+            this.objectDependency.set(procedurePointer, pointer);
+            value.procedures.push(procedure);
+        });
     }
 
     disconnect(from: ComponentPointer, service: ServicePointer): void {
