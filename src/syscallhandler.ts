@@ -169,10 +169,12 @@ export class SyscallInterpreter {
                 break;
             case SystemCallOperation.Min:
                 // TODO
+                console.warn('MIN call currently only supported for float');
                 this.evalStack.push(new FloatValue(Number.MIN_VALUE));
                 return;
             case SystemCallOperation.Max:
                 // TODO
+                console.warn('MAX call currently only supported for float');
                 this.evalStack.push(new FloatValue(Number.MAX_VALUE));
                 return;
             case SystemCallOperation.ToCharacter:

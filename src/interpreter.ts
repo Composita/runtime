@@ -16,7 +16,7 @@ import {
     TypeDescriptor,
     VariableDescriptor,
 } from '@composita/il';
-import { Optional } from '@composita/ts-utility-types';
+import { getOrThrow, Optional } from '@composita/ts-utility-types';
 import { EvaluationStack, StackValue } from './evalstack';
 import { Runtime } from './runtime';
 import { SyscallInterpreter } from './syscallhandler';
@@ -589,7 +589,7 @@ export class Interpreter {
         }
         if (variable instanceof ArrayVariableValue) {
             const index = new Array<StackValue>();
-            variable.descriptor.indexTypes.forEach(() => index.push(this.evalStack.popVariable()));
+            variable.descriptor.indexTypes.forEach(() => index.push(getOrThrow(this.evalStack.popVariable())));
             variable.value.set(index, value);
             return;
         }
@@ -622,7 +622,7 @@ export class Interpreter {
                 }
                 const index = new Array<StackValue>();
                 arrayVariable.descriptor.indexTypes.forEach(() => index.push(this.evalStack.popVariable()));
-                this.evalStack.push(variable.value.get(index));
+                this.evalStack.push(getOrThrow(variable.value.get(index)));
                 return;
             }
         }
@@ -816,10 +816,6 @@ export class Interpreter {
                 break;
             case OperationCode.LoadThis:
                 this.loadThis();
-                break;
-            case OperationCode.Await:
-                // TODO: Can be ignored for now
-                console.warn('AWAIT ignored.');
                 break;
             case OperationCode.AcquireShared:
                 // TODO: Can be ignored for now
