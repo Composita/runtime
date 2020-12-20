@@ -576,7 +576,10 @@ export class Interpreter {
                 throw new Error('Cannot assign value to a constant.');
             }
             const varValue = variable.value;
-            if (varValue === undefined && (Interpreter.isBuiltInValue(value) || value instanceof ComponentPointer)) {
+            if (
+                varValue instanceof UndefinedValue &&
+                (Interpreter.isBuiltInValue(value) || value instanceof ComponentPointer)
+            ) {
                 variable.value = value;
                 return;
             }
@@ -617,17 +620,11 @@ export class Interpreter {
                 return;
             }
             if (variable instanceof ArrayVariableValue) {
-                const arrayVariable = this.loadValue().variables.find((loadedVar) =>
-                    equal(loadedVar.descriptor, operands[0]),
-                );
-                if (arrayVariable === undefined) {
-                    throw new Error('Unknown array variable.');
-                }
-                const index = this.loadIndexVariable(arrayVariable.descriptor);
+                const index = this.loadIndexVariable(variable.descriptor);
                 if (!variable.value.has(index)) {
                     variable.value.set(
                         index,
-                        new VariableValue(arrayVariable.descriptor, new UndefinedValue(arrayVariable.descriptor.type)),
+                        new VariableValue(variable.descriptor, new UndefinedValue(variable.descriptor.type)),
                     );
                 }
                 this.evalStack.push(getOrThrow(variable.value.get(index)));
