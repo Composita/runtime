@@ -29,6 +29,7 @@ import {
     ComponentPointer,
     ComponentValue,
     FloatValue,
+    IndexTypes,
     IntegerValue,
     MessageValue,
     PointerValue,
@@ -326,6 +327,26 @@ export class Interpreter {
         throw new Error('Unsupported NEW. NEW target must be a variable.');
     }
 
+    private loadIndexVariable(descriptor: VariableDescriptor): string {
+        const index = new Array<IndexTypes>();
+        descriptor.indexTypes.forEach(() => {
+            const stackValue = this.evalStack.popVariable();
+            if (stackValue instanceof UndefinedValue) {
+                throw new Error('Load index value undefined!');
+            }
+            if (Interpreter.isBuiltInValue(stackValue)) {
+                index.push(stackValue.value);
+                return;
+            }
+            if (stackValue instanceof ComponentPointer || stackValue instanceof ServicePointer) {
+                index.push(stackValue.address);
+                return;
+            }
+            throw new Error('Illegal Variable Index.');
+        });
+        return index.join('::');
+    }
+
     private handleDelete(): void {
         const target = this.evalStack.pop();
         if (!(target instanceof VariableValue || target instanceof ArrayVariableValue)) {
@@ -340,8 +361,7 @@ export class Interpreter {
             target.value = new UndefinedValue(target.descriptor.type);
             return;
         }
-        const index = new Array<StackValue>();
-        target.descriptor.indexTypes.forEach(() => index.push(this.evalStack.popVariable()));
+        const index = this.loadIndexVariable(target.descriptor);
         const toDelete = target.value.get(index);
         if (toDelete instanceof ComponentValue) {
             toDelete.finalize();
@@ -573,9 +593,7 @@ export class Interpreter {
             }
         }
         if (variable instanceof ArrayVariableValue) {
-            const index = new Array<StackValue>();
-            variable.descriptor.indexTypes.forEach(() => index.push(getOrThrow(this.evalStack.popVariable())));
-            variable.value.set(index, value);
+            variable.value.set(this.loadIndexVariable(variable.descriptor), value);
             return;
         }
         throw new Error(`Unsupported Variable Store.`);
@@ -605,8 +623,7 @@ export class Interpreter {
                 if (arrayVariable === undefined) {
                     throw new Error('Unknown array variable.');
                 }
-                const index = new Array<StackValue>();
-                arrayVariable.descriptor.indexTypes.forEach(() => index.push(this.evalStack.popVariable()));
+                const index = this.loadIndexVariable(arrayVariable.descriptor);
                 if (!variable.value.has(index)) {
                     variable.value.set(
                         index,

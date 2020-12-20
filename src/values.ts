@@ -405,16 +405,13 @@ export class VariableValue {
     }
 }
 
-export type ArrayIndexType = Array<StackValue>;
+export type IndexTypes = number | boolean | string;
 
 enum ArrayVariableValueTag {
     Tag,
 }
 export class ArrayVariableValue {
-    constructor(
-        public readonly descriptor: VariableDescriptor,
-        public readonly value: Map<ArrayIndexType, StackValue>,
-    ) {}
+    constructor(public readonly descriptor: VariableDescriptor, public readonly value: Map<string, StackValue>) {}
     protected readonly _arrayVariableTag = ArrayVariableValueTag.Tag;
 }
 
