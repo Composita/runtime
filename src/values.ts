@@ -152,7 +152,7 @@ export abstract class ActiveValue {
     }
 
     private updateActiveSection(): void {
-        if (this.isDone() || !this.activeDone()) {
+        if (this.isDone() || !this.activeDone() || !this.isReady()) {
             return;
         }
         // Done with current code section
@@ -204,6 +204,7 @@ export abstract class ActiveValue {
     }
 
     protected abstract activeCodeDone(): boolean;
+    protected abstract isReady(): boolean;
 
     private initActive(): boolean {
         return this.activeCode === ActiveCode.Init;
@@ -267,26 +268,13 @@ export class ComponentValue extends ActiveValue {
         }
     }
 
-    /*
-    private requiredConnected(): boolean {
-        let allConnected = true;
-        this.requiredConnections.forEach((connection) => {
-            if (connection === undefined) {
-                allConnected = false;
-            }
+    protected isReady(): boolean {
+        let result = true;
+        this.requiredConnections.forEach((value) => {
+            result = result && value !== undefined;
         });
-        return allConnected;
+        return result;
     }
-
-    private offeredConnected(): boolean {
-        let anyConnected = false;
-        this.offerConnections.forEach((connection) => {
-            if (connection !== undefined) {
-                anyConnected = true;
-            }
-        });
-        return anyConnected;
-    }*/
 
     protected activeCodeDone(): boolean {
         const activeIP = this.loadIP();
@@ -316,6 +304,10 @@ export class ServiceValue extends ActiveValue {
 
     public readonly messageQueue = new Array<MessageValue>();
 
+    protected isReady(): boolean {
+        return true;
+    }
+
     protected fetchNext(): Optional<Instruction> {
         switch (this.activeCode) {
             case ActiveCode.Begin:
@@ -341,6 +333,10 @@ export type ReturnValue = BuiltInValue | ComponentValue;
 export class ProcedureValue extends ActiveValue {
     constructor(public readonly descriptor: ProcedureDescriptor, parent: PointerValue) {
         super(descriptor.declarations, parent);
+    }
+
+    protected isReady(): boolean {
+        return true;
     }
 
     protected findConnectedService(): Optional<ServiceValue> {
