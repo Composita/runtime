@@ -32,6 +32,7 @@ import {
     ServicePointer,
     ServiceValue,
     TextValue,
+    UndefinedValue,
     VariableValue,
     VariableValueType,
 } from './values';
@@ -146,7 +147,7 @@ export class Runtime {
         if (type instanceof BooleanDescriptor) {
             return new BooleanValue();
         }
-        return undefined;
+        return new UndefinedValue(type);
     }
 
     createComponent(type: ComponentDescriptor, container: PointerValue): ComponentPointer {

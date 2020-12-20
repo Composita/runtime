@@ -34,6 +34,7 @@ import {
     PointerValue,
     ServicePointer,
     TextValue,
+    UndefinedValue,
     VariableValue,
 } from './values';
 import { default as equal } from 'fast-deep-equal';
@@ -313,7 +314,7 @@ export class Interpreter {
     ): void {
         const index = new Array<StackValue>();
         target.descriptor.indexTypes.forEach(() => index.push(this.evalStack.popVariable()));
-        const entry = new VariableValue(target.descriptor, undefined);
+        const entry = new VariableValue(target.descriptor, new UndefinedValue(type));
         this.handleNewVariable(entry, type);
         target.value.set(index, entry);
     }
@@ -352,7 +353,7 @@ export class Interpreter {
                 target.value.finalize();
                 return;
             }
-            target.value = undefined;
+            target.value = new UndefinedValue(target.descriptor.type);
             return;
         }
         const index = new Array<StackValue>();
@@ -622,6 +623,9 @@ export class Interpreter {
                 }
                 const index = new Array<StackValue>();
                 arrayVariable.descriptor.indexTypes.forEach(() => index.push(this.evalStack.popVariable()));
+                if (!variable.value.has(index)) {
+                    variable.value.set(index, new UndefinedValue(arrayVariable.descriptor.type));
+                }
                 this.evalStack.push(getOrThrow(variable.value.get(index)));
                 return;
             }

@@ -7,6 +7,7 @@ import {
     JumpDescriptor,
     MessageDescriptor,
     ProcedureDescriptor,
+    TypeDescriptor,
     VariableDescriptor,
 } from '@composita/il';
 import { Optional } from '@composita/ts-utility-types';
@@ -417,8 +418,15 @@ export class ArrayVariableValue {
     protected readonly _arrayVariableTag = ArrayVariableValueTag.Tag;
 }
 
-export type BuiltInValue = undefined | IntegerValue | FloatValue | TextValue | CharacterValue | BooleanValue;
+export type BuiltInValue = IntegerValue | FloatValue | TextValue | CharacterValue | BooleanValue | UndefinedValue;
 
+enum UndefinedValueTag {
+    Tag,
+}
+export class UndefinedValue {
+    constructor(public type: TypeDescriptor) {}
+    protected readonly _integerTag = UndefinedValueTag.Tag;
+}
 enum IntegerValueTag {
     Tag,
 }
