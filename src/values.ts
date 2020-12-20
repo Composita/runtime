@@ -242,14 +242,14 @@ export abstract class ActiveValue {
 export class ComponentValue extends ActiveValue {
     constructor(public readonly descriptor: ComponentDescriptor, parent: PointerValue) {
         super(descriptor.declarations, parent);
-        this.offerConnections = new Map<InterfaceDescriptor, Optional<ServicePointer>>();
-        this.requiredConnections = new Map<InterfaceDescriptor, Optional<ServicePointer>>();
-        descriptor.offers.forEach((offer) => this.offerConnections.set(offer, undefined));
-        descriptor.requires.forEach((require) => this.requiredConnections.set(require, undefined));
+        this.offerConnections = new Map<InterfaceDescriptor, Array<ServicePointer>>();
+        this.requiredConnections = new Map<InterfaceDescriptor, Array<ServicePointer>>();
+        descriptor.offers.forEach((offer) => this.offerConnections.set(offer, []));
+        descriptor.requires.forEach((require) => this.requiredConnections.set(require, []));
     }
 
-    public readonly offerConnections: Map<InterfaceDescriptor, Optional<ServicePointer>>;
-    public readonly requiredConnections: Map<InterfaceDescriptor, Optional<ServicePointer>>;
+    public readonly offerConnections: Map<InterfaceDescriptor, Array<ServicePointer>>;
+    public readonly requiredConnections: Map<InterfaceDescriptor, Array<ServicePointer>>;
 
     protected fetchNext(): Optional<Instruction> {
         switch (this.activeCode) {
@@ -271,7 +271,7 @@ export class ComponentValue extends ActiveValue {
     protected isReady(): boolean {
         let result = true;
         this.requiredConnections.forEach((value) => {
-            result = result && value !== undefined;
+            result = result && value.length > 0;
         });
         return result;
     }

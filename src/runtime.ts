@@ -6,7 +6,6 @@ import {
     DeclarationDescriptor,
     FloatDescriptor,
     IL,
-    ImplementationDescriptor,
     IntegerDescriptor,
     InterfaceDescriptor,
     MessageDescriptor,
@@ -177,10 +176,10 @@ export class Runtime {
     }
 
     private interfaceToService = new Map<InterfaceDescriptor, Map<ComponentPointer, ServicePointer>>();
-    private serviceToImpl = new Map<ServicePointer, ComponentPointer>();
+    private serviceToComponent = new Map<ServicePointer, ComponentPointer>();
 
     // loads or create a service if it does not yet exist.
-    getService(type: InterfaceDescriptor, container: ComponentPointer): ServicePointer {
+    getService(type: InterfaceDescriptor, container: ComponentPointer): ServicePointer | UndefinedValue {
         const mapping = this.interfaceToService.get(type);
         if (mapping === undefined) {
             throw new Error('Interface not defined for service.');
@@ -189,64 +188,18 @@ export class Runtime {
         if (!(component instanceof ComponentValue)) {
             throw new Error('Component not in memory.');
         }
-        const implDesc = component.descriptor.implementations.find((desc) => equal(desc.reference, type));
 
         if (mapping.has(container)) {
             return mapping.get(container) as ServicePointer;
         }
 
-        if (implDesc !== undefined) {
-            const servicePointer = new ServicePointer(this.nextTaskId++, type);
-            this.serviceToImpl.set(servicePointer, container);
-            mapping.set(container, servicePointer);
-            return servicePointer;
-        }
-
-        const connectedService = component.offerConnections.get(type);
-        if (connectedService !== undefined) {
-            return connectedService;
-        }
-        const requiredService = component.requiredConnections.get(type);
-        if (requiredService !== undefined) {
-            return requiredService;
-        }
-        throw new Error('No service connected and no implementation found.');
+        const servicePointer = new ServicePointer(this.nextTaskId++, type);
+        this.serviceToComponent.set(servicePointer, container);
+        mapping.set(container, servicePointer);
+        return servicePointer;
     }
 
     private readonly clientToServer = new Map<ComponentPointer, Array<ServicePointer>>();
-
-    findService(descriptor: InterfaceDescriptor, root: PointerValue): Optional<ServicePointer> {
-        descriptor;
-        if (root instanceof RootPointer) {
-            return undefined;
-        }
-
-        const parent = this.objectDependency.get(root);
-        if (parent === undefined) {
-            throw new Error('Pointer without a parent.');
-        }
-
-        if (root instanceof ProcedurePointer) {
-            return this.findService(descriptor, parent);
-        }
-
-        const value = this.memory.get(root);
-        if (root instanceof ServicePointer) {
-            if (value instanceof ServiceValue && equal(value.descriptor.reference, descriptor)) {
-                return root;
-            }
-            return this.findService(descriptor, parent);
-        }
-
-        if (value instanceof ComponentPointer) {
-            const result = this.clientToServer.get(value)?.filter((pointer) => {
-                const memValue = this.memory.get(pointer);
-                return memValue instanceof ServiceValue && equal(memValue.descriptor.reference, descriptor);
-            });
-            return result?.length === 1 ? result[0] : undefined;
-        }
-        return undefined;
-    }
 
     send(to: ServicePointer, message: MessageValue): void {
         const service = this.memory.get(to);
@@ -290,50 +243,63 @@ export class Runtime {
         return queue[0];
     }
 
-    connect(to: ComponentPointer, service: ServicePointer): void {
-        const toValue = this.memory.get(to);
+    connect(toPtr: ComponentPointer, service: ServicePointer): void {
+        const toValue = this.memory.get(toPtr);
+        const fromPtr = this.serviceToComponent.get(service);
+        if (!(fromPtr instanceof ComponentPointer)) {
+            throw new Error('From does not point to valid component.');
+        }
+        const fromValue = this.memory.get(fromPtr);
+
+        if (!(fromValue instanceof ComponentValue)) {
+            throw new Error('connect: "From" must be a component value.');
+        }
 
         if (!(toValue instanceof ComponentValue)) {
             throw new Error('connect: "To" must be a component value.');
         }
 
-        let impl = toValue.descriptor.implementations.find((desc) => equal(desc.reference, service.type));
-        if (impl === undefined && !this.serviceToImpl.has(service)) {
-            throw new Error('Impl undefined.');
-        }
-        if (impl !== undefined) {
-            toValue.offerConnections.set(service.type, service);
-            const from = this.memory.get(this.serviceToImpl.get(service) as ComponentPointer);
-            if (from === undefined || !(from instanceof ComponentValue)) {
-                throw new Error('from undefiend when connecting');
-            }
-            from.requiredConnections.set(service.type, service);
-        }
-        if (impl === undefined) {
-            impl = this.serviceToImpl
-                .get(service)
-                ?.type.implementations.find((desc) => equal(desc.reference, service.type));
-            if (impl === undefined) {
-                throw new Error('Implementation not found.');
-            }
-            toValue.requiredConnections.set(service.type, service);
-            const from = this.memory.get(this.serviceToImpl.get(service) as ComponentPointer);
-            if (from === undefined || !(from instanceof ComponentValue)) {
-                throw new Error('from undefiend when connecting');
-            }
-            from.offerConnections.set(service.type, service);
-        }
-        if (!this.memory.has(service)) {
-            const serviceValue = this.createService(impl, service);
-            this.memory.set(service, serviceValue);
-        }
-        this.registerTask(service);
-    }
+        const toImpl = toValue.descriptor.implementations.find((desc) => equal(desc.reference, service.type));
+        const fromImpl = fromValue.descriptor.implementations.find((desc) => equal(desc.reference, service.type));
+        const implementation = toImpl === undefined ? fromImpl : toImpl;
 
-    private createService(type: ImplementationDescriptor, pointer: ServicePointer): ServiceValue {
-        const service = new ServiceValue(type, this.serviceToImpl.get(pointer) as ComponentPointer);
-        this.prepareDeclarations(type.declarations, service, pointer);
-        return service;
+        if (this.memory.has(service)) {
+            // just ignore it for now and return
+            throw new Error('Service already connected.');
+        }
+
+        if (implementation === undefined) {
+            throw new Error('Implementation undefined.');
+        }
+
+        const mapping = this.interfaceToService.get(service.type);
+        if (mapping === undefined) {
+            throw new Error('Interface not defined for service.');
+        }
+
+        let parent: Optional<ComponentPointer> = undefined;
+        if (toImpl !== undefined) {
+            toValue.offerConnections.get(service.type)?.push(service);
+            fromValue.requiredConnections.get(service.type)?.push(service);
+            parent = toPtr;
+        }
+
+        if (fromImpl !== undefined) {
+            fromValue.offerConnections.get(service.type)?.push(service);
+            toValue.requiredConnections.get(service.type)?.push(service);
+            parent = fromPtr;
+        }
+
+        if (parent === undefined) {
+            throw new Error('Unknown service parent!');
+        }
+
+        const serviceValue = new ServiceValue(implementation, parent);
+        this.prepareDeclarations(implementation.declarations, serviceValue, service);
+        this.memory.set(service, serviceValue);
+        mapping.set(toPtr, service);
+        mapping.set(fromPtr, service);
+        this.registerTask(service);
     }
 
     private createProcedure(type: ProcedureDescriptor, pointer: PointerValue): ProcedureValue {
