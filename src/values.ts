@@ -424,7 +424,7 @@ enum UndefinedValueTag {
     Tag,
 }
 export class UndefinedValue {
-    constructor(public type: TypeDescriptor) {}
+    constructor(public readonly type: TypeDescriptor) {}
     protected readonly _integerTag = UndefinedValueTag.Tag;
 }
 enum IntegerValueTag {

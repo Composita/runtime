@@ -308,17 +308,6 @@ export class Interpreter {
         throw new Error('NEW built in variable not yet supported.');
     }
 
-    private handleNewArrayVariable(
-        target: ArrayVariableValue,
-        type: ComponentDescriptor | BuiltInTypeDescriptor,
-    ): void {
-        const index = new Array<StackValue>();
-        target.descriptor.indexTypes.forEach(() => index.push(this.evalStack.popVariable()));
-        const entry = new VariableValue(target.descriptor, new UndefinedValue(type));
-        this.handleNewVariable(entry, type);
-        target.value.set(index, entry);
-    }
-
     private handleNew(operands: Array<InstructionArgument>): void {
         const type = operands[0];
         if (
@@ -331,11 +320,6 @@ export class Interpreter {
 
         if (target instanceof VariableValue) {
             this.handleNewVariable(target, type);
-            return;
-        }
-
-        if (target instanceof ArrayVariableValue) {
-            this.handleNewArrayVariable(target, type);
             return;
         }
 
@@ -624,7 +608,10 @@ export class Interpreter {
                 const index = new Array<StackValue>();
                 arrayVariable.descriptor.indexTypes.forEach(() => index.push(this.evalStack.popVariable()));
                 if (!variable.value.has(index)) {
-                    variable.value.set(index, new UndefinedValue(arrayVariable.descriptor.type));
+                    variable.value.set(
+                        index,
+                        new VariableValue(arrayVariable.descriptor, new UndefinedValue(arrayVariable.descriptor.type)),
+                    );
                 }
                 this.evalStack.push(getOrThrow(variable.value.get(index)));
                 return;
