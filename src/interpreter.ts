@@ -384,7 +384,7 @@ export class Interpreter {
         if (operands.length !== 1 || !(operands[0] instanceof MessageDescriptor)) {
             throw new Error('MessageDescriptor required for sending.');
         }
-        const service = this.evalStack.pop();
+        const service = this.evalStack.popVariable();
         if (!(service instanceof ServicePointer)) {
             throw new Error('Expected target service to send to.');
         }
@@ -428,7 +428,7 @@ export class Interpreter {
             // TODO: check if service pointer is possible here as well. Keeping it to components for now.
             throw new Error('Connect target needs to be either a component.');
         }
-        const service = this.evalStack.pop();
+        const service = this.evalStack.popVariable();
         if (!(service instanceof ServicePointer)) {
             throw new Error('Service required for from.');
         }
@@ -444,7 +444,7 @@ export class Interpreter {
         if (!(target instanceof ComponentPointer)) {
             throw new Error('Need to know from component.');
         }
-        const service = this.evalStack.pop();
+        const service = this.evalStack.popVariable();
         if (!(service instanceof ServicePointer)) {
             throw new Error('Service required for disconnecting.');
         }
@@ -691,7 +691,7 @@ export class Interpreter {
     }
 
     private branchConditionally(branch: boolean, operands: Array<InstructionArgument>): void {
-        const condition = this.evalStack.pop();
+        const condition = this.evalStack.popVariable();
         if (operands.length !== 1) {
             throw new Error(`Branch conditions only have one operand.`);
         }
