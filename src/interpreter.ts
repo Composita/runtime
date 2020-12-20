@@ -9,7 +9,7 @@ import {
     InterfaceDescriptor,
     JumpDescriptor,
     MessageDescriptor,
-    OperatorCode,
+    OperationCode,
     ProcedureDescriptor,
     SystemCallDescriptor,
     TextDescriptor,
@@ -225,7 +225,7 @@ export class Interpreter {
         throw new Error(`Unsupported equality comparison.`);
     }
 
-    private handleCompareOp(op: OperatorCode): void {
+    private handleCompareOp(op: OperationCode): void {
         const right = this.evalStack.popVariable();
         if (right === undefined) {
             throw new Error(`Unknown right compare argument.`);
@@ -235,22 +235,22 @@ export class Interpreter {
             throw new Error(`Unknown left compare argument.`);
         }
         switch (op) {
-            case OperatorCode.Equal:
+            case OperationCode.Equal:
                 this.handleEquatable(left, right, (l, r) => l === r);
                 return;
-            case OperatorCode.NotEqual:
+            case OperationCode.NotEqual:
                 this.handleEquatable(left, right, (l, r) => l !== r);
                 return;
-            case OperatorCode.Less:
+            case OperationCode.Less:
                 this.handleComparable(left, right, (l, r) => l < r);
                 return;
-            case OperatorCode.LessEqual:
+            case OperationCode.LessEqual:
                 this.handleComparable(left, right, (l, r) => l <= r);
                 return;
-            case OperatorCode.Greater:
+            case OperationCode.Greater:
                 this.handleComparable(left, right, (l, r) => l > r);
                 return;
-            case OperatorCode.GreaterEqual:
+            case OperationCode.GreaterEqual:
                 this.handleComparable(left, right, (l, r) => l >= r);
                 return;
         }
@@ -720,133 +720,133 @@ export class Interpreter {
             return;
         }
         switch (nextInstruction.code) {
-            case OperatorCode.Add:
+            case OperationCode.Add:
                 this.add();
                 break;
-            case OperatorCode.Subtract:
+            case OperationCode.Subtract:
                 this.sub();
                 break;
-            case OperatorCode.Multiply:
+            case OperationCode.Multiply:
                 this.mul();
                 break;
-            case OperatorCode.Divide:
+            case OperationCode.Divide:
                 this.div();
                 break;
-            case OperatorCode.Negate:
+            case OperationCode.Negate:
                 this.negate();
                 break;
-            case OperatorCode.Modulo:
+            case OperationCode.Modulo:
                 this.mod();
                 break;
-            case OperatorCode.Equal:
-            case OperatorCode.Less:
-            case OperatorCode.LessEqual:
-            case OperatorCode.Greater:
-            case OperatorCode.GreaterEqual:
-            case OperatorCode.NotEqual:
+            case OperationCode.Equal:
+            case OperationCode.Less:
+            case OperationCode.LessEqual:
+            case OperationCode.Greater:
+            case OperationCode.GreaterEqual:
+            case OperationCode.NotEqual:
                 this.handleCompareOp(nextInstruction.code);
                 break;
-            case OperatorCode.Not:
+            case OperationCode.Not:
                 this.not();
                 break;
-            case OperatorCode.LogicOr:
+            case OperationCode.LogicOr:
                 this.or();
                 break;
-            case OperatorCode.LogicAnd:
+            case OperationCode.LogicAnd:
                 this.and();
                 break;
-            case OperatorCode.New:
+            case OperationCode.New:
                 this.handleNew(nextInstruction.arguments);
                 break;
-            case OperatorCode.Delete:
+            case OperationCode.Delete:
                 this.handleDelete();
                 break;
-            case OperatorCode.Send:
+            case OperationCode.Send:
                 this.handleSend(nextInstruction.arguments);
                 break;
-            case OperatorCode.Receive:
+            case OperationCode.Receive:
                 this.handleReceive(nextInstruction.arguments);
                 break;
-            case OperatorCode.Connect:
+            case OperationCode.Connect:
                 this.handleConnect();
                 break;
-            case OperatorCode.Disconnect:
+            case OperationCode.Disconnect:
                 this.handleDisconnect();
                 break;
-            case OperatorCode.ReceiveTest:
+            case OperationCode.ReceiveTest:
                 this.handleReceiveCheck(nextInstruction.arguments);
                 break;
-            case OperatorCode.InputTest:
+            case OperationCode.InputTest:
                 this.handleInputCheck(nextInstruction.arguments);
                 break;
-            case OperatorCode.SystemCall:
+            case OperationCode.SystemCall:
                 this.handleSystemCall(nextInstruction.arguments);
                 break;
-            case OperatorCode.ProcedureCall:
+            case OperationCode.ProcedureCall:
                 this.handleProcedurecall(nextInstruction.arguments);
                 break;
-            case OperatorCode.Return:
+            case OperationCode.Return:
                 this.handleReturn();
                 break;
-            case OperatorCode.LoadConstantBoolean:
+            case OperationCode.LoadConstantBoolean:
                 this.loadBoolean(nextInstruction.arguments);
                 break;
-            case OperatorCode.LoadConstantText:
+            case OperationCode.LoadConstantText:
                 this.loadText(nextInstruction.arguments);
                 break;
-            case OperatorCode.LoadConstantCharacter:
+            case OperationCode.LoadConstantCharacter:
                 this.loadCharacter(nextInstruction.arguments);
                 break;
-            case OperatorCode.LoadConstantFloat:
+            case OperationCode.LoadConstantFloat:
                 this.loadFloat(nextInstruction.arguments);
                 break;
-            case OperatorCode.LoadConstantInteger:
+            case OperationCode.LoadConstantInteger:
                 this.loadInteger(nextInstruction.arguments);
                 break;
-            case OperatorCode.Move:
+            case OperationCode.Move:
                 throw new Error('MOVE is not yet supported.');
-            case OperatorCode.StoreVariable:
+            case OperationCode.StoreVariable:
                 this.storeVariable();
                 break;
-            case OperatorCode.LoadVariable:
+            case OperationCode.LoadVariable:
                 this.loadVariable(nextInstruction.arguments);
                 break;
-            case OperatorCode.LoadService:
+            case OperationCode.LoadService:
                 this.loadService(nextInstruction.arguments);
                 break;
-            case OperatorCode.LoadThis:
+            case OperationCode.LoadThis:
                 this.loadThis();
                 break;
-            case OperatorCode.Await:
+            case OperationCode.Await:
                 // TODO: Can be ignored for now
                 console.warn('AWAIT ignored.');
                 break;
-            case OperatorCode.AcquireShared:
+            case OperationCode.AcquireShared:
                 // TODO: Can be ignored for now
                 console.warn('Acquire SHARED ignored.');
                 break;
-            case OperatorCode.ReleaseShared:
+            case OperationCode.ReleaseShared:
                 // TODO: Can be ignored for now
                 console.warn('Release SHARED ignored.');
                 break;
-            case OperatorCode.AcquireExclusive:
+            case OperationCode.AcquireExclusive:
                 this.handleAcquireExclusive();
                 break;
-            case OperatorCode.ReleaseExclusive:
+            case OperationCode.ReleaseExclusive:
                 this.handleReleaseExclusive();
                 break;
-            case OperatorCode.Branch:
+            case OperationCode.Branch:
                 this.branch(nextInstruction.arguments);
                 break;
-            case OperatorCode.BranchTrue:
+            case OperationCode.BranchTrue:
                 this.branchConditionally(true, nextInstruction.arguments);
                 break;
-            case OperatorCode.BranchFalse:
+            case OperationCode.BranchFalse:
                 this.branchConditionally(false, nextInstruction.arguments);
                 break;
-            case OperatorCode.IsType:
+            case OperationCode.IsType:
                 throw new Error('IS typecheck is not yet supported.');
-            case OperatorCode.ExistsTest:
+            case OperationCode.ExistsTest:
                 throw new Error('EXISTSW check is not yet supported.');
         }
     }

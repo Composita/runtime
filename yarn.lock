@@ -23,19 +23,19 @@
     chalk "^2.0.0"
     js-tokens "^4.0.0"
 
-"@composita/compiler@^0.4.5":
-  version "0.4.5"
-  resolved "https://registry.yarnpkg.com/@composita/compiler/-/compiler-0.4.5.tgz#2eea4c0678ae150b254e24897724b01a7b1847f2"
-  integrity sha512-cEzdW9HWb848+21QsAHxK1pzpECQAJmp49oQ3KF9x9OfUohtffB3xIQxevpmJ+0SCQQM+4Qn2DcuwY/pq53nXg==
+"@composita/compiler@^0.5.0":
+  version "0.5.0"
+  resolved "https://registry.yarnpkg.com/@composita/compiler/-/compiler-0.5.0.tgz#274ecf333af70cf922da7b1d942cf59f74abd50c"
+  integrity sha512-nbiSti8YtHBvd3chZg0DGrl0mVbJp5C/IFjmHAk3MsnA+JNoeQEUxKEEe6RvQL0xXnQ4Bw7UqLBZ14kQFxDOBA==
   dependencies:
-    "@composita/il" "^0.4.0"
+    "@composita/il" "^0.5.0"
     "@composita/ts-utility-types" "^0.3.0"
     vscode-languageserver-types "^3.16.0"
 
-"@composita/il@^0.4.0":
-  version "0.4.0"
-  resolved "https://registry.yarnpkg.com/@composita/il/-/il-0.4.0.tgz#fd29ea0aa3bf52ef3b3f668ed36b861543119f09"
-  integrity sha512-+3Y9TehaNgEt3Z/seULDL0HQGREUnBeGNtbFOx0P+oGhN6VeaBMQITVBMlQa8S3cusXA8k7kRu6cR5Cktl8hMw==
+"@composita/il@^0.5.0":
+  version "0.5.0"
+  resolved "https://registry.yarnpkg.com/@composita/il/-/il-0.5.0.tgz#b25a96b231d98e64223503f5174074bf7fbe6a49"
+  integrity sha512-ui8dtsgI2d9YKXlgsjiLUHFtFlOnt4pf6kq4MEenKk0m5JbgyKCJEJlSag5dIsbm0zdhbcPT4+4MaT8dlRY6sA==
   dependencies:
     "@composita/ts-utility-types" "^0.3.0"
 
