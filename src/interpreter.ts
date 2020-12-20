@@ -52,9 +52,8 @@ export class Interpreter {
         return this.system.load(this.valuePointer);
     }
 
-    private loadParentValue(): Optional<ActiveValue> {
-        const current = this.loadValue();
-        return this.system.load(current.parent);
+    private loadParentValue(current: ActiveValue): Optional<ActiveValue> {
+        return this.system.tryLoad(current.parent);
     }
 
     private static isBuiltInTypeDescriptor(descriptor: InstructionArgument): descriptor is BuiltInTypeDescriptor {
@@ -602,16 +601,13 @@ export class Interpreter {
             throw new Error('Expected single argument for variable load only.');
         }
         if (operands[0] instanceof VariableDescriptor) {
-            let variable = this.loadValue().variables.find((variable) => variable.descriptor === operands[0]);
-            if (variable === undefined) {
-                if (this.valuePointer instanceof ServicePointer) {
-                    variable = this.loadParentValue()?.variables.find((parentVal) =>
-                        equal(parentVal.descriptor, operands[0]),
-                    );
-                }
-                if (variable === undefined) {
-                    throw new Error('Unknown variable.');
-                }
+            let current = this.loadValue();
+            let parent = this.loadParentValue(current);
+            let variable = current.variables.find((variable) => variable.descriptor === operands[0]);
+            while (variable === undefined && parent !== undefined) {
+                current = parent;
+                parent = this.loadParentValue(current);
+                variable = current.variables.find((variable) => equal(variable.descriptor, operands[0]));
             }
             if (variable instanceof VariableValue) {
                 this.evalStack.push(variable);

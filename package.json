@@ -1,6 +1,6 @@
 {
   "name": "@composita/runtime",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Composita language runtime.",
   "main": "dist/cjs/runtime.js",
   "module": "dist/esm/runtime.js",
