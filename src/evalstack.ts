@@ -1,13 +1,4 @@
-import {
-    BuiltInValue,
-    ComponentPointer,
-    ProcedurePointer,
-    ServicePointer,
-    VariableValue,
-    VariableValues,
-} from './values';
-
-export type StackValue = ComponentPointer | ServicePointer | VariableValues | BuiltInValue | ProcedurePointer;
+import { StackValue, VariableValue } from './values';
 
 export class EvaluationStack {
     private readonly stack = new Array<StackValue>();

@@ -11,7 +11,7 @@ import {
     VariableDescriptor,
 } from '@composita/il';
 import { Optional } from '@composita/ts-utility-types';
-import { StackValue } from './evalstack';
+import { EvaluationStack } from './evalstack';
 
 export enum ActiveCode {
     Init,
@@ -20,6 +20,8 @@ export enum ActiveCode {
     Finally,
     Procedure,
 }
+
+export type StackValue = ComponentPointer | ServicePointer | VariableValues | BuiltInValue | ProcedurePointer;
 
 //export type DeclarationHolder = ComponentValue | ServiceValue | ProcedureValue;
 export type VariableValues = VariableValue | ArrayVariableValue;
@@ -55,18 +57,25 @@ export class RootPointer {
 }
 
 export abstract class ActiveValue {
-    constructor(private readonly declarations: DeclarationDescriptor, public readonly parent: PointerValue) {}
+    constructor(
+        private readonly declarations: DeclarationDescriptor,
+        public readonly parent: PointerValue,
+        public readonly evalStack: EvaluationStack,
+    ) {}
     public readonly variables = new Array<VariableValues>();
-    //public readonly services = new Array<ServicePointer>();
     public readonly procedures = new Array<ProcedureValue>();
 
     protected abstract fetchNext(): Optional<Instruction>;
+    private onHold = () => false;
+
+    public exclusiveLock: Optional<number> = undefined;
 
     fetch(): Optional<Instruction> {
         this.updateActiveSection();
-        if (this.isDone()) {
+        if (this.isDone() || this.onHold()) {
             return undefined;
         }
+        this.onHold = () => false;
         switch (this.activeCode) {
             case ActiveCode.Init:
                 return this.declarations.init.instructions[this.loadAndAdvanceIP()];
@@ -75,6 +84,10 @@ export abstract class ActiveValue {
             default:
                 return this.fetchNext();
         }
+    }
+
+    wait(fn: () => boolean): void {
+        this.onHold = fn;
     }
 
     jump(descriptor: JumpDescriptor): void {
@@ -241,7 +254,7 @@ export abstract class ActiveValue {
 
 export class ComponentValue extends ActiveValue {
     constructor(public readonly descriptor: ComponentDescriptor, parent: PointerValue) {
-        super(descriptor.declarations, parent);
+        super(descriptor.declarations, parent, new EvaluationStack());
         this.offerConnections = new Map<InterfaceDescriptor, Array<ServicePointer>>();
         this.requiredConnections = new Map<InterfaceDescriptor, Array<ServicePointer>>();
         descriptor.offers.forEach((offer) => this.offerConnections.set(offer, []));
@@ -299,7 +312,7 @@ export class ComponentValue extends ActiveValue {
 
 export class ServiceValue extends ActiveValue {
     constructor(public readonly descriptor: ImplementationDescriptor, parent: ComponentPointer) {
-        super(descriptor.declarations, parent);
+        super(descriptor.declarations, parent, new EvaluationStack());
     }
 
     public readonly messageQueue = new Array<MessageValue>();
@@ -331,8 +344,8 @@ export class ServiceValue extends ActiveValue {
 export type ReturnValue = BuiltInValue | ComponentValue;
 
 export class ProcedureValue extends ActiveValue {
-    constructor(public readonly descriptor: ProcedureDescriptor, parent: PointerValue) {
-        super(descriptor.declarations, parent);
+    constructor(public readonly descriptor: ProcedureDescriptor, parent: PointerValue, evalStack: EvaluationStack) {
+        super(descriptor.declarations, parent, evalStack);
     }
 
     protected isReady(): boolean {

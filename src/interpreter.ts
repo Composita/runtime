@@ -17,7 +17,6 @@ import {
     VariableDescriptor,
 } from '@composita/il';
 import { getOrThrow, Optional } from '@composita/ts-utility-types';
-import { EvaluationStack, StackValue } from './evalstack';
 import { Runtime } from './runtime';
 import { SyscallInterpreter } from './syscallhandler';
 import {
@@ -34,6 +33,7 @@ import {
     MessageValue,
     PointerValue,
     ServicePointer,
+    StackValue,
     TextValue,
     UndefinedValue,
     VariableValue,
@@ -41,21 +41,19 @@ import {
 import { default as equal } from 'fast-deep-equal';
 
 export class Interpreter {
-    constructor(private readonly system: Runtime, private readonly valuePointer: PointerValue) {}
+    private systemCallHandler = new SyscallInterpreter();
+    private activeValue: Optional<ActiveValue> = undefined;
 
-    private evalStack: EvaluationStack = new EvaluationStack();
-    private systemCallHandler = new SyscallInterpreter(this.system, this.evalStack);
-
-    isDone(): boolean {
-        return this.loadValue().isDone();
+    private loadValue(pointer: PointerValue): void {
+        this.activeValue = Runtime.instance().load(pointer);
     }
 
-    private loadValue(): ActiveValue {
-        return this.system.load(this.valuePointer);
+    private unloadValue(): void {
+        this.activeValue = undefined;
     }
 
     private loadParentValue(current: ActiveValue): Optional<ActiveValue> {
-        return this.system.tryLoad(current.parent);
+        return Runtime.instance().tryLoad(current.parent);
     }
 
     private static isBuiltInTypeDescriptor(descriptor: InstructionArgument): descriptor is BuiltInTypeDescriptor {
@@ -89,87 +87,87 @@ export class Interpreter {
     }
 
     private add(): void {
-        const right = this.evalStack.popVariable();
-        const left = this.evalStack.popVariable();
+        const right = getOrThrow(this.activeValue).evalStack.popVariable();
+        const left = getOrThrow(this.activeValue).evalStack.popVariable();
         if (right instanceof TextValue && left instanceof TextValue) {
-            this.evalStack.push(new TextValue(left.value + right.value));
+            getOrThrow(this.activeValue).evalStack.push(new TextValue(left.value + right.value));
             return;
         }
         if (right instanceof FloatValue && left instanceof FloatValue) {
-            this.evalStack.push(new FloatValue(left.value + right.value));
+            getOrThrow(this.activeValue).evalStack.push(new FloatValue(left.value + right.value));
             return;
         }
         if (right instanceof IntegerValue && left instanceof IntegerValue) {
-            this.evalStack.push(new IntegerValue(Math.trunc(left.value + right.value)));
+            getOrThrow(this.activeValue).evalStack.push(new IntegerValue(Math.trunc(left.value + right.value)));
             return;
         }
         throw new Error(`Add operation failed.`);
     }
 
     private sub(): void {
-        const right = this.evalStack.popVariable();
-        const left = this.evalStack.popVariable();
+        const right = getOrThrow(this.activeValue).evalStack.popVariable();
+        const left = getOrThrow(this.activeValue).evalStack.popVariable();
         if (right instanceof FloatValue && left instanceof FloatValue) {
-            this.evalStack.push(new FloatValue(left.value - right.value));
+            getOrThrow(this.activeValue).evalStack.push(new FloatValue(left.value - right.value));
             return;
         }
         if (right instanceof IntegerValue && left instanceof IntegerValue) {
-            this.evalStack.push(new IntegerValue(Math.trunc(left.value - right.value)));
+            getOrThrow(this.activeValue).evalStack.push(new IntegerValue(Math.trunc(left.value - right.value)));
             return;
         }
         throw new Error(`Sub operation failed.`);
     }
 
     private mul(): void {
-        const right = this.evalStack.popVariable();
-        const left = this.evalStack.popVariable();
+        const right = getOrThrow(this.activeValue).evalStack.popVariable();
+        const left = getOrThrow(this.activeValue).evalStack.popVariable();
         if (right instanceof FloatValue && left instanceof FloatValue) {
-            this.evalStack.push(new FloatValue(left.value * right.value));
+            getOrThrow(this.activeValue).evalStack.push(new FloatValue(left.value * right.value));
             return;
         }
         if (right instanceof IntegerValue && left instanceof IntegerValue) {
-            this.evalStack.push(new IntegerValue(Math.trunc(left.value * right.value)));
+            getOrThrow(this.activeValue).evalStack.push(new IntegerValue(Math.trunc(left.value * right.value)));
             return;
         }
         throw new Error(`Mul operation failed.`);
     }
 
     private div(): void {
-        const right = this.evalStack.popVariable();
-        const left = this.evalStack.popVariable();
+        const right = getOrThrow(this.activeValue).evalStack.popVariable();
+        const left = getOrThrow(this.activeValue).evalStack.popVariable();
         if (right instanceof FloatValue && left instanceof FloatValue) {
-            this.evalStack.push(new FloatValue(left.value / right.value));
+            getOrThrow(this.activeValue).evalStack.push(new FloatValue(left.value / right.value));
             return;
         }
         if (right instanceof IntegerValue && left instanceof IntegerValue) {
-            this.evalStack.push(new IntegerValue(Math.trunc(left.value / right.value)));
+            getOrThrow(this.activeValue).evalStack.push(new IntegerValue(Math.trunc(left.value / right.value)));
             return;
         }
         throw new Error(`Div operation failed.`);
     }
 
     private negate(): void {
-        const right = this.evalStack.popVariable();
+        const right = getOrThrow(this.activeValue).evalStack.popVariable();
         if (right instanceof FloatValue) {
-            this.evalStack.push(new FloatValue(-right.value));
+            getOrThrow(this.activeValue).evalStack.push(new FloatValue(-right.value));
             return;
         }
         if (right instanceof IntegerValue) {
-            this.evalStack.push(new IntegerValue(-right.value));
+            getOrThrow(this.activeValue).evalStack.push(new IntegerValue(-right.value));
             return;
         }
         throw new Error(`Negate operation failed.`);
     }
 
     private mod(): void {
-        const right = this.evalStack.popVariable();
-        const left = this.evalStack.popVariable();
+        const right = getOrThrow(this.activeValue).evalStack.popVariable();
+        const left = getOrThrow(this.activeValue).evalStack.popVariable();
         if (right instanceof FloatValue && left instanceof FloatValue) {
-            this.evalStack.push(new FloatValue(left.value % right.value));
+            getOrThrow(this.activeValue).evalStack.push(new FloatValue(left.value % right.value));
             return;
         }
         if (right instanceof IntegerValue && left instanceof IntegerValue) {
-            this.evalStack.push(new IntegerValue(Math.trunc(left.value % right.value)));
+            getOrThrow(this.activeValue).evalStack.push(new IntegerValue(Math.trunc(left.value % right.value)));
             return;
         }
         throw new Error(`Mod operation failed.`);
@@ -181,19 +179,19 @@ export class Interpreter {
         fn: (left: number | string, right: number | string) => boolean,
     ): void {
         if (left instanceof IntegerValue && right instanceof IntegerValue) {
-            this.evalStack.push(new BooleanValue(fn(left.value, right.value)));
+            getOrThrow(this.activeValue).evalStack.push(new BooleanValue(fn(left.value, right.value)));
             return;
         }
         if (left instanceof FloatValue && right instanceof FloatValue) {
-            this.evalStack.push(new BooleanValue(fn(left.value, right.value)));
+            getOrThrow(this.activeValue).evalStack.push(new BooleanValue(fn(left.value, right.value)));
             return;
         }
         if (left instanceof TextValue && right instanceof TextValue) {
-            this.evalStack.push(new BooleanValue(fn(left.value, right.value)));
+            getOrThrow(this.activeValue).evalStack.push(new BooleanValue(fn(left.value, right.value)));
             return;
         }
         if (left instanceof CharacterValue && right instanceof CharacterValue) {
-            this.evalStack.push(new BooleanValue(fn(left.value, right.value)));
+            getOrThrow(this.activeValue).evalStack.push(new BooleanValue(fn(left.value, right.value)));
             return;
         }
         throw new Error(`Unsupported less/greater comparison.`);
@@ -205,34 +203,34 @@ export class Interpreter {
         fn: (left: number | boolean | string, right: number | boolean | string) => boolean,
     ): void {
         if (left instanceof BooleanValue && right instanceof BooleanValue) {
-            this.evalStack.push(new BooleanValue(fn(left.value, right.value)));
+            getOrThrow(this.activeValue).evalStack.push(new BooleanValue(fn(left.value, right.value)));
             return;
         }
         if (left instanceof IntegerValue && right instanceof IntegerValue) {
-            this.evalStack.push(new BooleanValue(fn(left.value, right.value)));
+            getOrThrow(this.activeValue).evalStack.push(new BooleanValue(fn(left.value, right.value)));
             return;
         }
         if (left instanceof FloatValue && right instanceof FloatValue) {
-            this.evalStack.push(new BooleanValue(fn(left.value, right.value)));
+            getOrThrow(this.activeValue).evalStack.push(new BooleanValue(fn(left.value, right.value)));
             return;
         }
         if (left instanceof TextValue && right instanceof TextValue) {
-            this.evalStack.push(new BooleanValue(fn(left.value, right.value)));
+            getOrThrow(this.activeValue).evalStack.push(new BooleanValue(fn(left.value, right.value)));
             return;
         }
         if (left instanceof CharacterValue && right instanceof CharacterValue) {
-            this.evalStack.push(new BooleanValue(fn(left.value, right.value)));
+            getOrThrow(this.activeValue).evalStack.push(new BooleanValue(fn(left.value, right.value)));
             return;
         }
         throw new Error(`Unsupported equality comparison.`);
     }
 
     private handleCompareOp(op: OperationCode): void {
-        const right = this.evalStack.popVariable();
+        const right = getOrThrow(this.activeValue).evalStack.popVariable();
         if (right === undefined) {
             throw new Error(`Unknown right compare argument.`);
         }
-        const left = this.evalStack.popVariable();
+        const left = getOrThrow(this.activeValue).evalStack.popVariable();
         if (left === undefined) {
             throw new Error(`Unknown left compare argument.`);
         }
@@ -260,35 +258,39 @@ export class Interpreter {
     }
 
     private not(): void {
-        const right = this.evalStack.popVariable();
+        const right = getOrThrow(this.activeValue).evalStack.popVariable();
         if (right instanceof BooleanValue) {
-            this.evalStack.push(new BooleanValue(!right.value));
+            getOrThrow(this.activeValue).evalStack.push(new BooleanValue(!right.value));
             return;
         }
         throw new Error(`Not operation failed.`);
     }
 
     private or(): void {
-        const right = this.evalStack.popVariable();
-        const left = this.evalStack.popVariable();
+        const right = getOrThrow(this.activeValue).evalStack.popVariable();
+        const left = getOrThrow(this.activeValue).evalStack.popVariable();
         if (right instanceof BooleanValue && left instanceof BooleanValue) {
-            this.evalStack.push(new BooleanValue(left.value || right.value));
+            getOrThrow(this.activeValue).evalStack.push(new BooleanValue(left.value || right.value));
             return;
         }
         throw new Error(`Or operation failed.`);
     }
 
     private and(): void {
-        const right = this.evalStack.popVariable();
-        const left = this.evalStack.popVariable();
+        const right = getOrThrow(this.activeValue).evalStack.popVariable();
+        const left = getOrThrow(this.activeValue).evalStack.popVariable();
         if (right instanceof BooleanValue && left instanceof BooleanValue) {
-            this.evalStack.push(new BooleanValue(left.value && right.value));
+            getOrThrow(this.activeValue).evalStack.push(new BooleanValue(left.value && right.value));
             return;
         }
         throw new Error(`And operation failed.`);
     }
 
-    private handleNewVariable(target: VariableValue, type: ComponentDescriptor | BuiltInTypeDescriptor): void {
+    private handleNewVariable(
+        pointer: PointerValue,
+        target: VariableValue,
+        type: ComponentDescriptor | BuiltInTypeDescriptor,
+    ): void {
         if (!target.isMutabled()) {
             throw new Error('Cannot NEW instanciate a constant value.');
         }
@@ -296,7 +298,7 @@ export class Interpreter {
             if (target.value instanceof ComponentValue) {
                 target.value.finalize();
             }
-            const component = this.system.createComponent(type, this.valuePointer);
+            const component = Runtime.instance().createComponent(type, pointer);
             target.value = component;
             return;
         }
@@ -309,7 +311,7 @@ export class Interpreter {
         console.warn('Composite Runtime: NEW call ignored for built-in variable type.');
     }
 
-    private handleNew(operands: Array<InstructionArgument>): void {
+    private handleNew(pointer: PointerValue, operands: Array<InstructionArgument>): void {
         const type = operands[0];
         if (
             operands.length !== 1 ||
@@ -317,10 +319,10 @@ export class Interpreter {
         ) {
             throw new Error('Unsupported NEW call, check your code generator.');
         }
-        const target = this.evalStack.pop();
+        const target = getOrThrow(this.activeValue).evalStack.pop();
 
         if (target instanceof VariableValue) {
-            this.handleNewVariable(target, type);
+            this.handleNewVariable(pointer, target, type);
             return;
         }
 
@@ -330,7 +332,7 @@ export class Interpreter {
     private loadIndexVariable(descriptor: VariableDescriptor): string {
         const index = new Array<IndexTypes>();
         descriptor.indexTypes.forEach(() => {
-            const stackValue = this.evalStack.popVariable();
+            const stackValue = getOrThrow(this.activeValue).evalStack.popVariable();
             if (stackValue instanceof UndefinedValue) {
                 throw new Error('Load index value undefined!');
             }
@@ -348,7 +350,7 @@ export class Interpreter {
     }
 
     private handleDelete(): void {
-        const target = this.evalStack.pop();
+        const target = getOrThrow(this.activeValue).evalStack.pop();
         if (!(target instanceof VariableValue || target instanceof ArrayVariableValue)) {
             throw new Error('Only variables can be deleted.');
         }
@@ -373,7 +375,7 @@ export class Interpreter {
     private loadMessage(descriptor: MessageDescriptor): MessageValue {
         const message = new MessageValue(descriptor);
         descriptor.data.forEach((type) => {
-            const value = this.evalStack.popVariable();
+            const value = getOrThrow(this.activeValue).evalStack.popVariable();
             if (!Interpreter.isBuiltInValue(value)) {
                 throw new Error('Message can only contain built in values: TEXT, CHARACTER INTEGER, REAL, BOOLEAN');
             }
@@ -389,71 +391,69 @@ export class Interpreter {
         if (operands.length !== 1 || !(operands[0] instanceof MessageDescriptor)) {
             throw new Error('MessageDescriptor required for sending.');
         }
-        const service = this.evalStack.popVariable();
+        const service = getOrThrow(this.activeValue).evalStack.popVariable();
         if (!(service instanceof ServicePointer)) {
             throw new Error('Expected target service to send to.');
         }
         const message = this.loadMessage(operands[0]);
-        this.system.send(service, message);
+        Runtime.instance().send(service, message);
     }
-
-    private wait: Optional<() => boolean> = undefined;
 
     private handleReceive(operands: Array<InstructionArgument>): void {
         if (operands.length !== 1 || !(operands[0] instanceof MessageDescriptor)) {
             throw new Error('MessageDescriptor required for receiving.');
         }
         const descriptor = operands[0];
-        const target = this.evalStack.popVariable();
+        const target = getOrThrow(this.activeValue).evalStack.popVariable();
         if (!(target instanceof ServicePointer)) {
             throw new Error('Receiver must be a service.');
         }
-        this.wait = () => {
-            const message = this.system.receive(target, descriptor);
+        const wait = () => {
+            const message = Runtime.instance().receive(target, descriptor);
             if (message === Runtime.finishMessage) {
                 return false;
             }
             if (message !== undefined) {
                 message.fields.forEach((element) => {
-                    this.evalStack.push(element);
+                    getOrThrow(this.activeValue).evalStack.push(element);
                     this.storeVariable();
                 });
                 return false;
             }
             return true;
         };
-        if (!this.wait()) {
-            this.wait = undefined;
+        if (wait()) {
+            getOrThrow(this.activeValue).wait(wait.bind(this));
         }
     }
 
     private handleConnect(): void {
-        const to = this.evalStack.popVariable();
+        const to = getOrThrow(this.activeValue).evalStack.popVariable();
         if (!(to instanceof ComponentPointer)) {
             // TODO: check if service pointer is possible here as well. Keeping it to components for now.
             throw new Error('Connect target needs to be either a component.');
         }
-        const service = this.evalStack.popVariable();
+        const service = getOrThrow(this.activeValue).evalStack.popVariable();
         if (!(service instanceof ServicePointer)) {
             throw new Error('Service required for from.');
         }
-        //const from = this.evalStack.popVariable();
+        //const from = getOrThrow(this.activeValue).evalStack.popVariable();
         //if (!(from instanceof ComponentPointer)) {
         //    throw new Error('Connect requires a component.');
         //}
-        this.system.connect(to, service);
+        Runtime.instance().connect(to, service);
     }
 
     private handleDisconnect(): void {
-        const target = this.evalStack.popVariable();
+        const target = getOrThrow(this.activeValue).evalStack.popVariable();
         if (!(target instanceof ComponentPointer)) {
             throw new Error('Need to know from component.');
         }
-        const service = this.evalStack.popVariable();
+        const service = getOrThrow(this.activeValue).evalStack.popVariable();
         if (!(service instanceof ServicePointer)) {
             throw new Error('Service required for disconnecting.');
         }
-        this.system.disconnect(target, service);
+        Runtime.instance().disconnect(target, service);
         // TODO
     }
 
@@ -462,24 +462,24 @@ export class Interpreter {
             throw new Error('MessageDescriptor required for receiving.');
         }
         const descriptor = operands[0];
-        const target = this.evalStack.popVariable();
+        const target = getOrThrow(this.activeValue).evalStack.popVariable();
         if (!(target instanceof ServicePointer)) {
             throw new Error('Receiver must be a component or service.');
         }
-        this.wait = () => {
-            const message = this.system.receiveTest(target);
+        const wait = () => {
+            const message = Runtime.instance().receiveTest(target);
             if (message === undefined) {
                 return true;
             }
             if (equal(message.descriptor, descriptor)) {
-                this.evalStack.push(new BooleanValue(true));
+                getOrThrow(this.activeValue).evalStack.push(new BooleanValue(true));
                 return false;
             }
-            this.evalStack.push(new BooleanValue(false));
+            getOrThrow(this.activeValue).evalStack.push(new BooleanValue(false));
             return false;
         };
-        if (!this.wait()) {
-            this.wait = undefined;
+        if (wait()) {
+            getOrThrow(this.activeValue).wait(wait.bind(this));
         }
     }
 
@@ -488,23 +488,23 @@ export class Interpreter {
             throw new Error('MessageDescriptor required for receiving.');
         }
         const descriptor = operands[0];
-        const target = this.evalStack.popVariable();
+        const target = getOrThrow(this.activeValue).evalStack.popVariable();
         if (!(target instanceof ServicePointer)) {
             throw new Error('Receiver must be a component or service.');
         }
-        const message = this.system.receiveTest(target);
+        const message = Runtime.instance().receiveTest(target);
         if (message !== undefined && equal(message.descriptor, descriptor)) {
-            this.evalStack.push(new BooleanValue(true));
+            getOrThrow(this.activeValue).evalStack.push(new BooleanValue(true));
             return;
         }
-        this.evalStack.push(new BooleanValue(false));
+        getOrThrow(this.activeValue).evalStack.push(new BooleanValue(false));
     }
 
     private handleSystemCall(operands: Array<InstructionArgument>): void {
         if (operands.length !== 1 || !(operands[0] instanceof SystemCallDescriptor)) {
             throw new Error('Invalid system call.');
         }
-        this.systemCallHandler.handle(operands[0]);
+        this.systemCallHandler.handle(getOrThrow(this.activeValue), operands[0]);
     }
 
     private handleProcedurecall(operands: Array<InstructionArgument>): void {
@@ -514,23 +514,23 @@ export class Interpreter {
         // TODO should we support out variables?
         const args = new Array<ComponentPointer | BuiltInValue>();
         operands[0].parameters.forEach(() => {
-            const value = this.evalStack.popVariable();
+            const value = getOrThrow(this.activeValue).evalStack.popVariable();
             if (value instanceof ComponentPointer || Interpreter.isBuiltInValue(value)) {
                 args.push(value);
                 return;
             }
             throw new Error('Failed to pass value to procedure.');
         });
-        this.loadValue().call(operands[0], args);
+        getOrThrow(this.activeValue).call(operands[0], args);
     }
 
     private handleReturn(): void {
-        this.loadValue().procedureReturned();
+        getOrThrow(this.activeValue).procedureReturned();
     }
 
     private loadBoolean(operands: Array<InstructionArgument>): void {
         if (operands.length > 0 && operands[0] instanceof BooleanDescriptor) {
-            this.evalStack.push(new BooleanValue(operands[0].initialValue));
+            getOrThrow(this.activeValue).evalStack.push(new BooleanValue(operands[0].initialValue));
             return;
         }
         throw new Error(`Boolean load operation failed.`);
@@ -538,7 +538,7 @@ export class Interpreter {
 
     private loadText(operands: Array<InstructionArgument>): void {
         if (operands.length >= 1 && operands[0] instanceof TextDescriptor) {
-            this.evalStack.push(new TextValue(operands[0].initialValue));
+            getOrThrow(this.activeValue).evalStack.push(new TextValue(operands[0].initialValue));
             return;
         }
         throw new Error(`Text load operation failed.`);
@@ -546,7 +546,7 @@ export class Interpreter {
 
     private loadCharacter(operands: Array<InstructionArgument>): void {
         if (operands.length >= 1 && operands[0] instanceof CharacterDescriptor) {
-            this.evalStack.push(new CharacterValue(operands[0].initialValue));
+            getOrThrow(this.activeValue).evalStack.push(new CharacterValue(operands[0].initialValue));
             return;
         }
         throw new Error(`Character load operation failed.`);
@@ -554,7 +554,7 @@ export class Interpreter {
 
     private loadFloat(operands: Array<InstructionArgument>): void {
         if (operands.length > 0 && operands[0] instanceof FloatDescriptor) {
-            this.evalStack.push(new FloatValue(operands[0].initialValue));
+            getOrThrow(this.activeValue).evalStack.push(new FloatValue(operands[0].initialValue));
             return;
         }
         throw new Error(`Float load operation failed.`);
@@ -562,15 +562,15 @@ export class Interpreter {
 
     private loadInteger(operands: Array<InstructionArgument>): void {
         if (operands.length > 0 && operands[0] instanceof IntegerDescriptor) {
-            this.evalStack.push(new IntegerValue(operands[0].initialValue));
+            getOrThrow(this.activeValue).evalStack.push(new IntegerValue(operands[0].initialValue));
             return;
         }
         throw new Error(`Integer load operation failed.`);
     }
 
     private storeVariable(): void {
-        const value = this.evalStack.popVariable();
-        const variable = this.evalStack.pop();
+        const value = getOrThrow(this.activeValue).evalStack.popVariable();
+        const variable = getOrThrow(this.activeValue).evalStack.pop();
         if (variable instanceof VariableValue) {
             if (!variable.isMutabled()) {
                 throw new Error('Cannot assign value to a constant.');
@@ -607,7 +607,7 @@ export class Interpreter {
             throw new Error('Expected single argument for variable load only.');
         }
         if (operands[0] instanceof VariableDescriptor) {
-            let current = this.loadValue();
+            let current = getOrThrow(this.activeValue);
             let parent = this.loadParentValue(current);
             let variable = current.variables.find((variable) => variable.descriptor === operands[0]);
             while (variable === undefined && parent !== undefined) {
@@ -616,7 +616,7 @@ export class Interpreter {
                 variable = current.variables.find((variable) => equal(variable.descriptor, operands[0]));
             }
             if (variable instanceof VariableValue) {
-                this.evalStack.push(variable);
+                getOrThrow(this.activeValue).evalStack.push(variable);
                 return;
             }
             if (variable instanceof ArrayVariableValue) {
@@ -627,7 +627,7 @@ export class Interpreter {
                         new VariableValue(variable.descriptor, new UndefinedValue(variable.descriptor.type)),
                     );
                 }
-                this.evalStack.push(getOrThrow(variable.value.get(index)));
+                getOrThrow(this.activeValue).evalStack.push(getOrThrow(variable.value.get(index)));
                 return;
             }
         }
@@ -636,50 +636,48 @@ export class Interpreter {
 
     private loadService(operands: Array<InstructionArgument>): void {
         if (operands.length === 1 && operands[0] instanceof InterfaceDescriptor) {
-            const pointer = this.evalStack.popVariable();
+            const pointer = getOrThrow(this.activeValue).evalStack.popVariable();
             if (pointer instanceof ComponentPointer) {
-                const service = this.system.getService(operands[0], pointer);
-                this.evalStack.push(service);
+                const service = Runtime.instance().getService(operands[0], pointer);
+                getOrThrow(this.activeValue).evalStack.push(service);
                 return;
             }
         }
         throw new Error(`Unsupported Service Load.`);
     }
 
-    private loadThis(): void {
-        if (this.valuePointer instanceof ServicePointer || this.valuePointer instanceof ComponentPointer) {
-            this.evalStack.push(this.valuePointer);
+    private loadThis(pointer: PointerValue): void {
+        if (pointer instanceof ServicePointer || pointer instanceof ComponentPointer) {
+            getOrThrow(this.activeValue).evalStack.push(pointer);
             return;
         }
         throw new Error('Load this only for services supported.');
     }
 
-    private lock: Optional<number> = undefined;
-
     private handleAcquireExclusive(): void {
-        this.wait = () => {
-            const newLock = this.system.acquireExclusive(this.lock);
+        const wait = () => {
+            const newLock = Runtime.instance().acquireExclusive(getOrThrow(this.activeValue).exclusiveLock);
             if (newLock === undefined) {
                 return true;
             }
-            this.lock = newLock;
+            getOrThrow(this.activeValue).exclusiveLock = newLock;
             return false;
         };
-        if (!this.wait()) {
-            this.wait = undefined;
+        if (wait()) {
+            getOrThrow(this.activeValue).wait(wait.bind(this));
         }
     }
 
     private handleReleaseExclusive(): void {
-        this.wait = () => {
-            const success = this.system.releaseExclusive(this.lock);
+        const wait = () => {
+            const success = Runtime.instance().releaseExclusive(getOrThrow(this.activeValue).exclusiveLock);
             if (success) {
-                this.lock = undefined;
+                getOrThrow(this.activeValue).exclusiveLock = undefined;
             }
             return !success;
         };
-        if (!this.wait()) {
-            this.wait = undefined;
+        if (wait()) {
+            getOrThrow(this.activeValue).wait(wait.bind(this));
         }
     }
 
@@ -689,14 +687,14 @@ export class Interpreter {
         }
         const operand = operands[0];
         if (operand instanceof JumpDescriptor) {
-            this.loadValue().jump(operand);
+            getOrThrow(this.activeValue).jump(operand);
             return;
         }
         throw new Error(`Failed jump.`);
     }
 
     private branchConditionally(branch: boolean, operands: Array<InstructionArgument>): void {
-        const condition = this.evalStack.popVariable();
+        const condition = getOrThrow(this.activeValue).evalStack.popVariable();
         if (operands.length !== 1) {
             throw new Error(`Branch conditions only have one operand.`);
         }
@@ -710,18 +708,15 @@ export class Interpreter {
         throw new Error(`Conditional jump failed.`);
     }
 
-    processNext(): void {
-        if (this.loadValue().isDone()) {
+    async process(pointer: PointerValue): Promise<void> {
+        this.loadValue(pointer);
+        if (getOrThrow(this.activeValue).isDone()) {
+            this.unloadValue();
             return;
         }
-        if (this.wait !== undefined) {
-            if (this.wait()) {
-                return;
-            }
-            this.wait = undefined;
-        }
-        const nextInstruction = this.loadValue().fetch();
+        const nextInstruction = getOrThrow(this.activeValue).fetch();
         if (nextInstruction === undefined) {
+            this.unloadValue();
             return;
         }
         switch (nextInstruction.code) {
@@ -761,7 +756,7 @@ export class Interpreter {
                 this.and();
                 break;
             case OperationCode.New:
-                this.handleNew(nextInstruction.arguments);
+                this.handleNew(pointer, nextInstruction.arguments);
                 break;
             case OperationCode.Delete:
                 this.handleDelete();
@@ -820,7 +815,7 @@ export class Interpreter {
                 this.loadService(nextInstruction.arguments);
                 break;
             case OperationCode.LoadThis:
-                this.loadThis();
+                this.loadThis(pointer);
                 break;
             case OperationCode.AcquireShared:
                 // TODO: Can be ignored for now
@@ -850,5 +845,6 @@ export class Interpreter {
             case OperationCode.ExistsTest:
                 throw new Error('EXISTS test is not yet supported.');
         }
+        this.unloadValue();
     }
 }

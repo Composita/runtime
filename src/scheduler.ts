@@ -1,29 +1,29 @@
 import { Optional } from '@composita/ts-utility-types';
-import { Task, TaskState } from './tasks';
+import { Runtime } from './runtime';
+import { PointerValue } from './values';
 
 export class Scheduler {
-    private activeTask: Optional<Task> = undefined;
-    private readyTasks: Array<Task> = new Array<Task>();
+    private active: Optional<PointerValue> = undefined;
+    private ready: Array<PointerValue> = new Array<PointerValue>();
 
-    enqueue(task: Task): void {
-        this.readyTasks.push(task);
+    enqueue(work: PointerValue): void {
+        this.ready.push(work);
     }
 
-    getNextTask(): Optional<Task> {
+    getNext(): Optional<PointerValue> {
         // simple scheduling, just loop through all the tasks.
         this.scheduleNext();
-        return this.activeTask;
+        return this.active;
     }
 
-    getActiveTask(): Optional<Task> {
-        return this.activeTask;
+    getActive(): Optional<PointerValue> {
+        return this.active;
     }
 
     private scheduleNext(): void {
-        if (this.activeTask !== undefined && this.activeTask.getState() !== TaskState.Done) {
-            this.readyTasks.push(this.activeTask);
+        if (this.active !== undefined && !Runtime.instance().load(this.active).isDone()) {
+            this.ready.push(this.active);
         }
-        this.activeTask?.pause();
-        this.activeTask = this.readyTasks.shift();
+        this.active = this.ready.shift();
     }
 }

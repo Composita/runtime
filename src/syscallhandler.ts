@@ -1,6 +1,5 @@
-import { IntegerDescriptor, MessageDescriptor, SystemCallDescriptor, SystemCallOperation } from '@composita/il';
+import { IntegerDescriptor, SystemCallDescriptor, SystemCallOperation } from '@composita/il';
 import { Optional } from '@composita/ts-utility-types';
-import { EvaluationStack, StackValue } from './evalstack';
 import { Runtime } from './runtime';
 import {
     TextValue,
@@ -9,30 +8,12 @@ import {
     BooleanValue,
     VariableValue,
     IntegerValue,
-    ServiceValue,
-    MessageValue,
+    ActiveValue,
+    StackValue,
 } from './values';
 
-export class BidirectionalConnection {
-    constructor(public readonly client: ServiceValue, public readonly server: ServiceValue) {}
-    private readonly clientToServer = new Array<MessageValue>();
-    private readonly serverToClient = new Array<MessageValue>();
-    sendToClient(message: MessageValue): void {
-        this.serverToClient.push(message);
-    }
-    sendToServer(message: MessageValue): void {
-        this.clientToServer.push(message);
-    }
-    checkClientReceive(message: MessageDescriptor): boolean {
-        return this.serverToClient.length > 0 && this.serverToClient[0].descriptor === message;
-    }
-    checkServerReceive(message: MessageDescriptor): boolean {
-        return this.clientToServer.length > 0 && this.clientToServer[0].descriptor === message;
-    }
-}
-
 export class SyscallInterpreter {
-    constructor(private readonly system: Runtime, private readonly evalStack: EvaluationStack) {}
+    private activeValue: Optional<ActiveValue> = undefined;
 
     private static toValue(value: StackValue): StackValue {
         return value instanceof VariableValue ? value.value : value;
@@ -41,7 +22,7 @@ export class SyscallInterpreter {
     private handleNoArg(op: SystemCallOperation): void {
         switch (op) {
             case SystemCallOperation.WriteLine:
-                this.system.print('\n');
+                Runtime.instance().print('\n');
                 return;
         }
         throw new Error(
@@ -59,14 +40,14 @@ export class SyscallInterpreter {
                     value instanceof FloatValue ||
                     value instanceof IntegerValue
                 ) {
-                    this.system.print(value.value.toString());
+                    Runtime.instance().print(value.value.toString());
                     return;
                 }
                 break;
             case SystemCallOperation.WriteHex:
                 value = SyscallInterpreter.toValue(value);
                 if (value instanceof IntegerValue) {
-                    this.system.print(value.value.toString(16));
+                    Runtime.instance().print(value.value.toString(16));
                     return;
                 }
                 break;
@@ -114,98 +95,98 @@ export class SyscallInterpreter {
             case SystemCallOperation.Length:
                 value = SyscallInterpreter.toValue(value);
                 if (value instanceof TextValue) {
-                    this.evalStack.push(new IntegerValue(value.value.length));
+                    this.activeValue?.evalStack.push(new IntegerValue(value.value.length));
                     return;
                 }
                 break;
             case SystemCallOperation.Sqrt:
                 value = SyscallInterpreter.toValue(value);
                 if (value instanceof FloatValue) {
-                    this.evalStack.push(new FloatValue(Math.sqrt(value.value)));
+                    this.activeValue?.evalStack.push(new FloatValue(Math.sqrt(value.value)));
                     return;
                 }
                 break;
             case SystemCallOperation.Sin:
                 value = SyscallInterpreter.toValue(value);
                 if (value instanceof FloatValue) {
-                    this.evalStack.push(new FloatValue(Math.sin(value.value)));
+                    this.activeValue?.evalStack.push(new FloatValue(Math.sin(value.value)));
                     return;
                 }
                 break;
             case SystemCallOperation.Cos:
                 value = SyscallInterpreter.toValue(value);
                 if (value instanceof FloatValue) {
-                    this.evalStack.push(new FloatValue(Math.cos(value.value)));
+                    this.activeValue?.evalStack.push(new FloatValue(Math.cos(value.value)));
                     return;
                 }
                 break;
             case SystemCallOperation.Tan:
                 value = SyscallInterpreter.toValue(value);
                 if (value instanceof FloatValue) {
-                    this.evalStack.push(new FloatValue(Math.tan(value.value)));
+                    this.activeValue?.evalStack.push(new FloatValue(Math.tan(value.value)));
                     return;
                 }
                 break;
             case SystemCallOperation.ArcSin:
                 value = SyscallInterpreter.toValue(value);
                 if (value instanceof FloatValue) {
-                    this.evalStack.push(new FloatValue(Math.asin(value.value)));
+                    this.activeValue?.evalStack.push(new FloatValue(Math.asin(value.value)));
                     return;
                 }
                 break;
             case SystemCallOperation.ArcCos:
                 value = SyscallInterpreter.toValue(value);
                 if (value instanceof FloatValue) {
-                    this.evalStack.push(new FloatValue(Math.acos(value.value)));
+                    this.activeValue?.evalStack.push(new FloatValue(Math.acos(value.value)));
                     return;
                 }
                 break;
             case SystemCallOperation.ArcTan:
                 value = SyscallInterpreter.toValue(value);
                 if (value instanceof FloatValue) {
-                    this.evalStack.push(new FloatValue(Math.atan(value.value)));
+                    this.activeValue?.evalStack.push(new FloatValue(Math.atan(value.value)));
                     return;
                 }
                 break;
             case SystemCallOperation.Min:
                 // TODO
                 console.warn('MIN call currently only supported for float');
-                this.evalStack.push(new FloatValue(Number.MIN_VALUE));
+                this.activeValue?.evalStack.push(new FloatValue(Number.MIN_VALUE));
                 return;
             case SystemCallOperation.Max:
                 // TODO
                 console.warn('MAX call currently only supported for float');
-                this.evalStack.push(new FloatValue(Number.MAX_VALUE));
+                this.activeValue?.evalStack.push(new FloatValue(Number.MAX_VALUE));
                 return;
             case SystemCallOperation.ToCharacter:
                 value = SyscallInterpreter.toValue(value);
                 if (value instanceof IntegerValue) {
-                    this.evalStack.push(new CharacterValue(String.fromCharCode(value.value)));
+                    this.activeValue?.evalStack.push(new CharacterValue(String.fromCharCode(value.value)));
                     return;
                 }
                 break;
             case SystemCallOperation.ToText:
                 value = SyscallInterpreter.toValue(value);
                 if (value instanceof CharacterValue) {
-                    this.evalStack.push(new TextValue(value.value));
+                    this.activeValue?.evalStack.push(new TextValue(value.value));
                     return;
                 }
                 break;
             case SystemCallOperation.ToInteger:
                 value = SyscallInterpreter.toValue(value);
                 if (value instanceof FloatValue) {
-                    this.evalStack.push(new IntegerValue(Math.trunc(value.value)));
+                    this.activeValue?.evalStack.push(new IntegerValue(Math.trunc(value.value)));
                     return;
                 }
                 if (value instanceof CharacterValue) {
-                    this.evalStack.push(new IntegerValue(Number.parseInt(value.value)));
+                    this.activeValue?.evalStack.push(new IntegerValue(Number.parseInt(value.value)));
                     return;
                 }
                 break;
             case SystemCallOperation.ToReal:
                 value = SyscallInterpreter.toValue(value);
                 if (value instanceof IntegerValue) {
-                    this.evalStack.push(new FloatValue(value.value));
+                    this.activeValue?.evalStack.push(new FloatValue(value.value));
                     return;
                 }
                 break;
@@ -222,7 +203,7 @@ export class SyscallInterpreter {
                     if (!value2.value) {
                         // ignore param n
                         throw new Error(`Assertion failed. Code ${value}.`);
-                        //this.system.haltProcessWithCode(this.processId, value.value);
+                        //Runtime.instance().haltProcessWithCode(this.processId, value.value);
                         //return;
                     }
                 }
@@ -251,7 +232,9 @@ export class SyscallInterpreter {
                 value = SyscallInterpreter.toValue(value);
                 value2 = SyscallInterpreter.toValue(value2);
                 if (value2 instanceof IntegerValue && value instanceof IntegerValue) {
-                    this.evalStack.push(new IntegerValue(Math.trunc(Math.random() * value.value) + value2.value));
+                    this.activeValue?.evalStack.push(
+                        new IntegerValue(Math.trunc(Math.random() * value.value) + value2.value),
+                    );
                 }
                 break;
         }
@@ -265,7 +248,7 @@ export class SyscallInterpreter {
         //return undefined;
     }
 
-    handle(call: SystemCallDescriptor): void {
+    handle(value: ActiveValue, call: SystemCallDescriptor): void {
         if (call.arguments.length !== 1) {
             throw new Error(
                 'SystemCall requires the number of arguments to be passed. Something must have failed during code gen.',
@@ -276,13 +259,15 @@ export class SyscallInterpreter {
                 'SystemCall expects to be passed an IntegerDescriptor argument. Something must have failed during code gen.',
             );
         }
+        this.activeValue = value;
         const op = call.systemCall;
         const args = new Array<StackValue>();
         for (let i = 0; i < call.arguments[0].initialValue; ++i) {
-            args.push(this.evalStack.pop());
+            args.push(this.activeValue.evalStack.pop());
         }
         if (op === SystemCallOperation.LoadForEachDesignators) {
             this.handleForEachCall(args);
+            this.activeValue = undefined;
             return;
         }
         switch (args.length) {
@@ -298,5 +283,6 @@ export class SyscallInterpreter {
             default:
                 throw new Error(`Failed system call '${op}' with ${args.length} arguments. Operation not supported.`);
         }
+        this.activeValue = undefined;
     }
 }

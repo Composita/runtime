@@ -13,7 +13,7 @@ import {
     TextDescriptor,
     TypeDescriptor,
 } from '@composita/il';
-import { Optional } from '@composita/ts-utility-types';
+import { getOrThrow, Optional } from '@composita/ts-utility-types';
 import {
     ActiveValue,
     ArrayVariableValue,
@@ -35,17 +35,21 @@ import {
     VariableValue,
     VariableValueType,
 } from './values';
-import { Task } from './tasks';
 import { Interpreter } from './interpreter';
 import { default as equal } from 'fast-deep-equal';
 
 export class Runtime {
-    private scheduler: Scheduler = new Scheduler();
+    private constructor() {
+        /* private for singleton use */
+    }
+
+    private readonly scheduler: Scheduler = new Scheduler();
+    private readonly interpreter: Interpreter = new Interpreter();
     private nextTaskId = 0;
     private stop = false;
 
-    private memory = new Map<PointerValue, ActiveValue>();
-    private objectDependency = new Map<PointerValue, PointerValue>(); // key: child, value: parent
+    private readonly memory = new Map<PointerValue, ActiveValue>();
+    private readonly objectDependency = new Map<PointerValue, PointerValue>(); // key: child, value: parent
 
     // hack for now
     public static readonly finishMessage = new MessageValue(new MessageDescriptor('FINISH'));
@@ -53,6 +57,16 @@ export class Runtime {
 
     private out: (...msgs: Array<string>) => void = (...msgs: Array<string>) =>
         msgs.forEach((msg) => process.stdout.write(msg));
+
+    private static runtime: Runtime = new Runtime();
+
+    static instance(): Runtime {
+        return Runtime.runtime;
+    }
+
+    reset(): void {
+        Runtime.runtime = new Runtime();
+    }
 
     halt(): void {
         this.stop = true;
@@ -76,10 +90,10 @@ export class Runtime {
         il.entryPoints.forEach((descriptor) => {
             this.createComponent(descriptor, new RootPointer());
         });
-        let task = this.scheduler.getNextTask();
-        while (task !== undefined && !this.stop) {
-            await task.execute();
-            task = this.scheduler.getNextTask();
+        let next = this.scheduler.getNext();
+        while (next !== undefined && !this.stop) {
+            await this.interpreter.process(next);
+            next = this.scheduler.getNext();
         }
         this.isRunning(false);
     }
@@ -154,7 +168,7 @@ export class Runtime {
         const component = new ComponentValue(type, container);
         this.objectDependency.set(pointer, container);
         this.memory.set(pointer, component);
-        this.registerTask(pointer);
+        this.scheduler.enqueue(pointer);
         this.prepareDeclarations(type.declarations, component, pointer);
         type.offers.forEach((offer) => {
             if (!this.interfaceToService.has(offer)) {
@@ -167,12 +181,6 @@ export class Runtime {
             }
         });
         return pointer;
-    }
-
-    private registerTask(pointer: PointerValue): void {
-        const interpreter = new Interpreter(this, pointer);
-        const task = new Task(pointer, interpreter);
-        this.scheduler.enqueue(task);
     }
 
     private interfaceToService = new Map<InterfaceDescriptor, Map<ComponentPointer, ServicePointer>>();
@@ -299,11 +307,12 @@ export class Runtime {
         this.memory.set(service, serviceValue);
         mapping.set(toPtr, service);
         mapping.set(fromPtr, service);
-        this.registerTask(service);
+        this.scheduler.enqueue(service);
     }
 
     private createProcedure(type: ProcedureDescriptor, pointer: PointerValue): ProcedureValue {
-        const procedure = new ProcedureValue(type, pointer);
+        const value = getOrThrow(this.memory.get(pointer));
+        const procedure = new ProcedureValue(type, pointer, value.evalStack);
         this.prepareDeclarations(type.declarations, procedure, pointer);
         return procedure;
     }
