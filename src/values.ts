@@ -21,7 +21,13 @@ export enum ActiveCode {
     Procedure,
 }
 
-export type StackValue = ComponentPointer | ServicePointer | VariableValues | BuiltInValue | ProcedurePointer;
+export type StackValue =
+    | ComponentPointer
+    | ServicePointer
+    | VariableValues
+    | BuiltInValue
+    | ProcedurePointer
+    | ArrayIndexValue;
 
 //export type DeclarationHolder = ComponentValue | ServiceValue | ProcedureValue;
 export type VariableValues = VariableValue | ArrayVariableValue;
@@ -468,7 +474,13 @@ export class BooleanValue {
     constructor(public value: boolean = false) {}
     protected readonly _booleanTag = BooleanValueTag.Tag;
 }
-
+enum ArrayIndexValueTag {
+    Tag,
+}
+export class ArrayIndexValue {
+    constructor(public value: number = 0) {}
+    protected readonly _arrayIndexTag = ArrayIndexValueTag.Tag;
+}
 export type NumberValue = IntegerValue | FloatValue;
 
 export type AddableValue = NumberValue | TextValue;

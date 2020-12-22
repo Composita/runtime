@@ -241,13 +241,6 @@ export class SyscallInterpreter {
         throw new Error(`Failed system call '${SystemCallOperation[op]}' and two arguments. Operation not supported.`);
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    private handleForEachCall(_args: Array<StackValue>): Optional<StackValue> {
-        // TODO
-        throw new Error('Runtime: Foreach not yet supported.');
-        //return undefined;
-    }
-
     handle(value: ActiveValue, call: SystemCallDescriptor): void {
         if (call.arguments.length !== 1) {
             throw new Error(
@@ -264,11 +257,6 @@ export class SyscallInterpreter {
         const args = new Array<StackValue>();
         for (let i = 0; i < call.arguments[0].initialValue; ++i) {
             args.push(this.activeValue.evalStack.pop());
-        }
-        if (op === SystemCallOperation.LoadForEachDesignators) {
-            this.handleForEachCall(args);
-            this.activeValue = undefined;
-            return;
         }
         switch (args.length) {
             case 0:

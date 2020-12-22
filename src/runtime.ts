@@ -45,10 +45,11 @@ export class Runtime {
 
     private readonly scheduler: Scheduler = new Scheduler();
     private readonly interpreter: Interpreter = new Interpreter();
-    private nextTaskId = 0;
+    private nextAddress = 0;
     private stop = false;
 
     private readonly memory = new Map<PointerValue, ActiveValue>();
+    private readonly addressToPointer = new Map<number, PointerValue>();
     private readonly objectDependency = new Map<PointerValue, PointerValue>(); // key: child, value: parent
 
     // hack for now
@@ -140,6 +141,14 @@ export class Runtime {
         return value;
     }
 
+    getPointerFromAddress(address: number): PointerValue {
+        const pointer = this.addressToPointer.get(address);
+        if (pointer === undefined) {
+            throw new Error('Unknown address.');
+        }
+        return pointer;
+    }
+
     tryLoad(pointer: PointerValue): Optional<ActiveValue> {
         return this.memory.get(pointer);
     }
@@ -164,10 +173,11 @@ export class Runtime {
     }
 
     createComponent(type: ComponentDescriptor, container: PointerValue): ComponentPointer {
-        const pointer = new ComponentPointer(this.nextTaskId++, type);
+        const pointer = new ComponentPointer(this.nextAddress++, type);
         const component = new ComponentValue(type, container);
         this.objectDependency.set(pointer, container);
         this.memory.set(pointer, component);
+        this.addressToPointer.set(pointer.address, pointer);
         this.scheduler.enqueue(pointer);
         this.prepareDeclarations(type.declarations, component, pointer);
         type.offers.forEach((offer) => {
@@ -201,8 +211,9 @@ export class Runtime {
             return mapping.get(container) as ServicePointer;
         }
 
-        const servicePointer = new ServicePointer(this.nextTaskId++, type);
+        const servicePointer = new ServicePointer(this.nextAddress++, type);
         this.serviceToComponent.set(servicePointer, container);
+        this.addressToPointer.set(servicePointer.address, servicePointer);
         mapping.set(container, servicePointer);
         return servicePointer;
     }
@@ -327,9 +338,10 @@ export class Runtime {
             }
         });
         type.procedures.forEach((descriptor) => {
-            const procedurePointer = new ProcedurePointer(this.nextTaskId++, descriptor);
+            const procedurePointer = new ProcedurePointer(this.nextAddress++, descriptor);
             const procedure = this.createProcedure(descriptor, pointer);
             this.memory.set(procedurePointer, procedure);
+            this.addressToPointer.set(procedurePointer.address, pointer);
             this.objectDependency.set(procedurePointer, pointer);
             value.procedures.push(procedure);
         });

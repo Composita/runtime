@@ -291,6 +291,38 @@ END Expr;`;
     test.end();
 });
 
+tape('Foreach loop.', async (test) => {
+    const code = `COMPONENT { ENTRYPOINT } Expr;
+  VARIABLE
+    room[number: INTEGER]: INTEGER;
+    i: INTEGER;
+  CONSTANT
+    limit = 10;
+  BEGIN
+    FOR i := 1 TO limit DO
+      room[i] := i * 10
+    END;
+    FOREACH i OF room DO
+      WRITE(i); WRITE(" ");
+      WRITE(room[i]); WRITELINE
+    END
+END Expr;`;
+    const outputCapture = new OutputCapture();
+    const uri = '';
+    const compiler = new Compiler();
+    const il = compiler.compile(uri, code);
+    Runtime.instance().reset();
+    const runtime = Runtime.instance();
+    runtime.changeOutput(outputCapture.capture.bind(outputCapture));
+    await runtime.run(il);
+    test.equal(
+        outputCapture.getOutput(),
+        '1 10\n2 20\n3 30\n4 40\n5 50\n6 60\n7 70\n8 80\n9 90\n10 100\n',
+        'ForEach loop fail.',
+    );
+    test.end();
+});
+
 tape('Another basic comparison.', async (test) => {
     const code = `COMPONENT { ENTRYPOINT } Expr;
   BEGIN

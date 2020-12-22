@@ -21,6 +21,7 @@ import { Runtime } from './runtime';
 import { SyscallInterpreter } from './syscallhandler';
 import {
     ActiveValue,
+    ArrayIndexValue,
     ArrayVariableValue,
     BooleanValue,
     BuiltInValue,
@@ -312,14 +313,25 @@ export class Interpreter {
     }
 
     private handleNew(pointer: PointerValue, operands: Array<InstructionArgument>): void {
-        const type = operands[0];
-        if (
-            operands.length !== 1 ||
-            !(type instanceof ComponentDescriptor || Interpreter.isBuiltInTypeDescriptor(type))
-        ) {
+        if (operands.length !== 2) {
             throw new Error('Unsupported NEW call, check your code generator.');
         }
+        const type = operands[0];
+        const nArgs = operands[1];
+        if (!(type instanceof ComponentDescriptor || Interpreter.isBuiltInTypeDescriptor(type))) {
+            throw new Error('NEW Component or built-in type expected.');
+        }
+
+        if (!(nArgs instanceof IntegerDescriptor)) {
+            throw new Error('Expected number of args as second argument.');
+        }
+
         const target = getOrThrow(this.activeValue).evalStack.pop();
+
+        for (let i = 0; i < nArgs.initialValue; ++i) {
+            // ignore for now:
+            getOrThrow(this.activeValue).evalStack.pop();
+        }
 
         if (target instanceof VariableValue) {
             this.handleNewVariable(pointer, target, type);
@@ -329,7 +341,9 @@ export class Interpreter {
         throw new Error('Unsupported NEW. NEW target must be a variable.');
     }
 
-    private loadIndexVariable(descriptor: VariableDescriptor): string {
+    private static readonly indexJoiner = '@___@:::@___@';
+
+    private loadVariableIndex(descriptor: VariableDescriptor): string {
         const index = new Array<IndexTypes>();
         descriptor.indexTypes.forEach(() => {
             const stackValue = getOrThrow(this.activeValue).evalStack.popVariable();
@@ -340,13 +354,13 @@ export class Interpreter {
                 index.push(stackValue.value);
                 return;
             }
-            if (stackValue instanceof ComponentPointer || stackValue instanceof ServicePointer) {
+            if (stackValue instanceof ComponentPointer) {
                 index.push(stackValue.address);
                 return;
             }
             throw new Error('Illegal Variable Index.');
         });
-        return index.join('::');
+        return index.join(Interpreter.indexJoiner);
     }
 
     private handleDelete(): void {
@@ -363,7 +377,7 @@ export class Interpreter {
             target.value = new UndefinedValue(target.descriptor.type);
             return;
         }
-        const index = this.loadIndexVariable(target.descriptor);
+        const index = this.loadVariableIndex(target.descriptor);
         const toDelete = target.value.get(index);
         if (toDelete instanceof ComponentValue) {
             toDelete.finalize();
@@ -596,13 +610,13 @@ export class Interpreter {
             }
         }
         if (variable instanceof ArrayVariableValue) {
-            variable.value.set(this.loadIndexVariable(variable.descriptor), value);
+            variable.value.set(this.loadVariableIndex(variable.descriptor), value);
             return;
         }
         throw new Error(`Unsupported Variable Store.`);
     }
 
-    private loadVariable(operands: Array<InstructionArgument>): void {
+    private findVariable(operands: Array<InstructionArgument>): VariableValue | ArrayVariableValue {
         if (operands.length !== 1) {
             throw new Error('Expected single argument for variable load only.');
         }
@@ -615,23 +629,49 @@ export class Interpreter {
                 parent = this.loadParentValue(current);
                 variable = current.variables.find((variable) => equal(variable.descriptor, operands[0]));
             }
-            if (variable instanceof VariableValue) {
-                getOrThrow(this.activeValue).evalStack.push(variable);
-                return;
-            }
-            if (variable instanceof ArrayVariableValue) {
-                const index = this.loadIndexVariable(variable.descriptor);
-                if (!variable.value.has(index)) {
-                    variable.value.set(
-                        index,
-                        new VariableValue(variable.descriptor, new UndefinedValue(variable.descriptor.type)),
-                    );
-                }
-                getOrThrow(this.activeValue).evalStack.push(getOrThrow(variable.value.get(index)));
-                return;
+            if (variable !== undefined) {
+                return variable;
             }
         }
+        throw new Error('Failed to find variable.');
+    }
+
+    private loadVariable(operands: Array<InstructionArgument>): void {
+        const variable = this.findVariable(operands);
+        if (variable instanceof VariableValue) {
+            getOrThrow(this.activeValue).evalStack.push(variable);
+            return;
+        }
         throw new Error(`Unsupported Variable Load.`);
+    }
+
+    loadArrayVariable(operands: Array<InstructionArgument>): void {
+        const variable = this.findVariable(operands);
+        if (
+            variable instanceof ArrayVariableValue ||
+            (variable instanceof VariableValue && variable.descriptor.type instanceof TextDescriptor)
+        ) {
+            getOrThrow(this.activeValue).evalStack.push(variable);
+            return;
+        }
+        console.log(variable);
+        throw new Error(`Unsupported Array Variable Load.`);
+    }
+
+    loadArrayVariableElement(operands: Array<InstructionArgument>): void {
+        const variable = this.findVariable(operands);
+        if (variable instanceof ArrayVariableValue) {
+            const index = this.loadVariableIndex(variable.descriptor);
+            if (!variable.value.has(index)) {
+                variable.value.set(
+                    index,
+                    new VariableValue(variable.descriptor, new UndefinedValue(variable.descriptor.type)),
+                );
+            }
+            getOrThrow(this.activeValue).evalStack.push(getOrThrow(variable.value.get(index)));
+            return;
+        }
+        throw new Error(`Unsupported Array Variable Element Load.`);
     }
 
     private loadService(operands: Array<InstructionArgument>): void {
@@ -705,7 +745,113 @@ export class Interpreter {
             }
             return;
         }
+        console.log(condition);
+        console.log(this.activeValue?.evalStack);
         throw new Error(`Conditional jump failed.`);
+    }
+
+    private handleIsType(operands: Array<InstructionArgument>): void {
+        const variable = getOrThrow(this.activeValue).evalStack.pop();
+        if (operands.length !== 1) {
+            throw new Error(`IsType check must have one operand.`);
+        }
+        const operand = operands[0];
+        if (variable instanceof VariableValue && operand instanceof ComponentDescriptor) {
+            getOrThrow(this.activeValue).evalStack.push(new BooleanValue(equal(variable.descriptor.type, operand)));
+            return;
+        }
+        throw new Error('IsType check failed.');
+    }
+
+    private handleExists(): void {
+        const variable = getOrThrow(this.activeValue).evalStack.popVariable();
+        getOrThrow(this.activeValue).evalStack.push(new BooleanValue(!(variable instanceof UndefinedValue)));
+    }
+
+    private handleForEachBegin(): void {
+        getOrThrow(this.activeValue).evalStack.push(new ArrayIndexValue());
+    }
+
+    private handleForEachEnd(): void {
+        const endIndex = getOrThrow(this.activeValue).evalStack.pop();
+        if (endIndex instanceof ArrayIndexValue) {
+            return;
+        }
+        throw new Error('ForEach Stack Issue.');
+    }
+
+    private handleAssignArrayIndex(): void {
+        const variable = getOrThrow(this.activeValue).evalStack.pop();
+        if (!(variable instanceof ArrayVariableValue)) {
+            console.log(variable);
+            throw new Error('Expected array variable in foreach.');
+        }
+        const indexVars = new Array<VariableValue>();
+        variable.descriptor.indexTypes.forEach(() => {
+            const stackValue = getOrThrow(this.activeValue).evalStack.pop();
+            if (!(stackValue instanceof VariableValue)) {
+                throw new Error('Variable required to assign to.');
+            }
+            indexVars.push(stackValue);
+        });
+        const indexToLoad = getOrThrow(this.activeValue).evalStack.pop();
+        if (!(indexToLoad instanceof ArrayIndexValue)) {
+            throw new Error('Array index value expected.');
+        }
+        const keys = Array.from(variable.value.keys());
+        if (variable.value.size === 0 || indexToLoad.value >= keys.length) {
+            getOrThrow(this.activeValue).evalStack.push(indexToLoad);
+            getOrThrow(this.activeValue).evalStack.push(new BooleanValue(false));
+            return;
+        }
+        const indexes = keys[indexToLoad.value].split(Interpreter.indexJoiner);
+        if (indexes.length !== indexVars.length) {
+            throw new Error('Index assignment number of indexes mismatch');
+        }
+
+        indexVars.forEach((value, i) => {
+            const stringIndex = indexes[i];
+            if (value.descriptor.type instanceof ComponentDescriptor) {
+                const address = Number.parseInt(stringIndex);
+                const pointer = Runtime.instance().getPointerFromAddress(address);
+                if (!(pointer instanceof ComponentPointer)) {
+                    throw new Error('Index type mismatch.');
+                }
+                value.value = pointer;
+                return;
+            }
+            if (value.descriptor.type instanceof IntegerDescriptor) {
+                const indexValue = Number.parseInt(stringIndex);
+                value.value = new IntegerValue(indexValue);
+                return;
+            }
+            if (value.descriptor.type instanceof FloatDescriptor) {
+                const indexValue = Number.parseFloat(stringIndex);
+                value.value = new FloatValue(indexValue);
+                return;
+            }
+            if (value.descriptor.type instanceof TextDescriptor) {
+                value.value = new TextValue(stringIndex);
+                return;
+            }
+            if (value.descriptor.type instanceof CharacterDescriptor) {
+                value.value = new CharacterValue(stringIndex);
+                return;
+            }
+            if (value.descriptor.type instanceof BooleanDescriptor) {
+                if (stringIndex === 'true') {
+                    value.value = new BooleanValue(true);
+                    return;
+                }
+                if (stringIndex === 'false') {
+                    value.value = new BooleanValue(false);
+                    return;
+                }
+            }
+            throw new Error('Failed index type conversion.');
+        });
+        getOrThrow(this.activeValue).evalStack.push(new ArrayIndexValue(indexToLoad.value + 1));
+        getOrThrow(this.activeValue).evalStack.push(new BooleanValue(true));
     }
 
     async process(pointer: PointerValue): Promise<void> {
@@ -811,6 +957,12 @@ export class Interpreter {
             case OperationCode.LoadVariable:
                 this.loadVariable(nextInstruction.arguments);
                 break;
+            case OperationCode.LoadArrayVariable:
+                this.loadArrayVariable(nextInstruction.arguments);
+                break;
+            case OperationCode.LoadArrayVariableElement:
+                this.loadArrayVariableElement(nextInstruction.arguments);
+                break;
             case OperationCode.LoadService:
                 this.loadService(nextInstruction.arguments);
                 break;
@@ -841,9 +993,20 @@ export class Interpreter {
                 this.branchConditionally(false, nextInstruction.arguments);
                 break;
             case OperationCode.IsType:
-                throw new Error('IS typecheck is not yet supported.');
+                this.handleIsType(nextInstruction.arguments);
+                break;
             case OperationCode.ExistsTest:
-                throw new Error('EXISTS test is not yet supported.');
+                this.handleExists();
+                break;
+            case OperationCode.BeginForEach:
+                this.handleForEachBegin();
+                break;
+            case OperationCode.EndForEach:
+                this.handleForEachEnd();
+                break;
+            case OperationCode.AssignArrayIndex:
+                this.handleAssignArrayIndex();
+                break;
         }
         this.unloadValue();
     }
