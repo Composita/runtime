@@ -756,7 +756,7 @@ export class Interpreter {
             throw new Error(`IsType check must have one operand.`);
         }
         const operand = operands[0];
-        if (variable instanceof VariableValue && operand instanceof ComponentDescriptor) {
+        if (variable instanceof VariableValue) {
             getOrThrow(this.activeValue).evalStack.push(new BooleanValue(equal(variable.descriptor.type, operand)));
             return;
         }

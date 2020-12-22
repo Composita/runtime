@@ -294,17 +294,28 @@ END Expr;`;
 tape('Foreach loop.', async (test) => {
     const code = `COMPONENT { ENTRYPOINT } Expr;
   VARIABLE
-    room[number: INTEGER]: INTEGER;
-    i: INTEGER;
+    room[number: INTEGER; x1: TEXT; x2: BOOLEAN]: INTEGER;
+    i: INTEGER; t: TEXT; b: BOOLEAN;
   CONSTANT
     limit = 10;
   BEGIN
     FOR i := 1 TO limit DO
-      room[i] := i * 10
+      room[i, TEXT("T"), TRUE] := i * 10
     END;
-    FOREACH i OF room DO
-      WRITE(i); WRITE(" ");
-      WRITE(room[i]); WRITELINE
+    room[3, TEXT("T"), FALSE] := 333;
+    room[3, TEXT("A"), FALSE] := 666;
+    IF i IS INTEGER THEN
+      WRITE("i is an INTEGER"); WRITELINE
+    END;
+    FOREACH i, t, b OF room DO
+      WRITE(i); WRITE(" "); WRITE(t); WRITE(" ");
+      IF b THEN
+        WRITE("TRUE")
+      ELSE
+        WRITE("FALSE")
+      END;
+      WRITE(" ");
+      WRITE(room[i, t, b]); WRITELINE
     END
 END Expr;`;
     const outputCapture = new OutputCapture();
@@ -317,7 +328,7 @@ END Expr;`;
     await runtime.run(il);
     test.equal(
         outputCapture.getOutput(),
-        '1 10\n2 20\n3 30\n4 40\n5 50\n6 60\n7 70\n8 80\n9 90\n10 100\n',
+        'i is an INTEGER\n1 T TRUE 10\n2 T TRUE 20\n3 T TRUE 30\n4 T TRUE 40\n5 T TRUE 50\n6 T TRUE 60\n7 T TRUE 70\n8 T TRUE 80\n9 T TRUE 90\n10 T TRUE 100\n3 T FALSE 333\n3 A FALSE 666\n',
         'ForEach loop fail.',
     );
     test.end();
